@@ -1,0 +1,23 @@
+{
+  "name": "@mfe/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared constants, utilities, and cross-MFE event bus for the monorepo workspace",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./events": "./src/events/mfe-events.js",
+    "./constants": "./src/constants/config.js",
+    "./components/Button": "./src/components/Button.jsx"
+  },
+  "scripts": {
+    "lint": "oxlint"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "oxlint": "^1.81.0"
+  }
+}

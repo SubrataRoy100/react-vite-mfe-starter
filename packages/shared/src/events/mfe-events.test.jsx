@@ -1,0 +1,123 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import { sendMfeEvent, useMfeEventListener, MFE_EVENTS } from "./mfe-events.js";
+
+describe("Cross-MFE Event Bus (mfe-events)", () => {
+  beforeEach(() => {
+    delete window.__IS_HOST__;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  describe("sendMfeEvent", () => {
+    it("dispatches CustomEvent with payload, timestamp, and default remote sender", () => {
+      const listener = vi.fn();
+      window.addEventListener(MFE_EVENTS.PING, listener);
+
+      sendMfeEvent(MFE_EVENTS.PING, { message: "Ping from remote", count: 1 });
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      const event = listener.mock.calls[0][0];
+      expect(event).toBeInstanceOf(CustomEvent);
+      expect(event.detail.message).toBe("Ping from remote");
+      expect(event.detail.count).toBe(1);
+      expect(event.detail.sender).toBe("Remote Micro-Frontend");
+      expect(typeof event.detail.timestamp).toBe("number");
+
+      window.removeEventListener(MFE_EVENTS.PING, listener);
+    });
+
+    it("correctly identifies Host sender when window.__IS_HOST__ is true", () => {
+      window.__IS_HOST__ = true;
+
+      const listener = vi.fn();
+      window.addEventListener(MFE_EVENTS.PONG, listener);
+
+      sendMfeEvent(MFE_EVENTS.PONG, { message: "Pong from host" });
+
+      expect(listener).toHaveBeenCalledTimes(1);
+      const event = listener.mock.calls[0][0];
+      expect(event.detail.sender).toBe("Host Shell");
+
+      window.removeEventListener(MFE_EVENTS.PONG, listener);
+    });
+
+    it("respects window.__MFE_NAME__ and explicit payload.sender overrides", () => {
+      window.__MFE_NAME__ = "customRemote";
+
+      const listener = vi.fn();
+      window.addEventListener(MFE_EVENTS.PING, listener);
+
+      sendMfeEvent(MFE_EVENTS.PING, { message: "Test" });
+      expect(listener.mock.calls[0][0].detail.sender).toBe("customRemote");
+
+      sendMfeEvent(MFE_EVENTS.PING, { message: "Override", sender: "explicitSender" });
+      expect(listener.mock.calls[1][0].detail.sender).toBe("explicitSender");
+
+      delete window.__MFE_NAME__;
+      window.removeEventListener(MFE_EVENTS.PING, listener);
+    });
+  });
+
+  describe("useMfeEventListener Hook Lifecycle", () => {
+    it("attaches listener on mount and receives dispatched events", () => {
+      const handler = vi.fn();
+
+      renderHook(() => useMfeEventListener(MFE_EVENTS.PING, handler));
+
+      act(() => {
+        sendMfeEvent(MFE_EVENTS.PING, { data: "test-data" });
+      });
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith(
+        expect.objectContaining({ data: "test-data" })
+      );
+    });
+
+    it("does not trigger callback for unrelated event names", () => {
+      const handler = vi.fn();
+
+      renderHook(() => useMfeEventListener(MFE_EVENTS.PONG, handler));
+
+      act(() => {
+        sendMfeEvent(MFE_EVENTS.PING, { data: "ping-only" });
+      });
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("cleans up event listener on unmount to prevent memory leaks", () => {
+      const handler = vi.fn();
+      const removeSpy = vi.spyOn(window, "removeEventListener");
+
+      const { unmount } = renderHook(() =>
+        useMfeEventListener(MFE_EVENTS.NOTIFICATION, handler)
+      );
+
+      // Verify listener works while mounted
+      act(() => {
+        sendMfeEvent(MFE_EVENTS.NOTIFICATION, { id: 1 });
+      });
+      expect(handler).toHaveBeenCalledTimes(1);
+
+      // Unmount hook
+      unmount();
+
+      expect(removeSpy).toHaveBeenCalledWith(
+        MFE_EVENTS.NOTIFICATION,
+        expect.any(Function)
+      );
+
+      // Dispatch event after unmount
+      act(() => {
+        sendMfeEvent(MFE_EVENTS.NOTIFICATION, { id: 2 });
+      });
+
+      // Handler should NOT be called again
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+  });
+});

@@ -1,0 +1,49 @@
+{
+  "name": "mfe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Micro-Frontend Monorepo Starter Framework with Vite Module Federation and React 19",
+  "scripts": {
+    "remotes:list": "node scripts/orchestrate.js list",
+    "dev:remotes-build": "node scripts/orchestrate.js build-remotes",
+    "dev:host": "pnpm --filter host dev",
+    "dev": "node scripts/orchestrate.js dev",
+    "dev:only": "node scripts/orchestrate.js dev --only",
+    "build:remotes": "node scripts/orchestrate.js build-remotes",
+    "build:host": "pnpm --filter host build",
+    "build": "node scripts/orchestrate.js build",
+    "lint": "pnpm -r lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "preview": "pnpm --filter host preview",
+    "reset:demo": "node scripts/reset-demo.js",
+    "restore:demo": "node scripts/restore-demo.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.4.2",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.4.2",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@originjs/vite-plugin-federation": "^1.4.1",
+    "@testing-library/react": "^16.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.1",
+    "concurrently": "^10.0.5",
+    "jsdom": "^30.0.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

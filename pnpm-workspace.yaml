@@ -1,0 +1,5 @@
+packages:
+  # all packages in subdirs of packages/
+  - "packages/*"
+minimumReleaseAgeExclude:
+  - react-router@8.4.0

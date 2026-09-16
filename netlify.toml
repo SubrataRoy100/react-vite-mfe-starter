@@ -1,0 +1,23 @@
+# Netlify deployment configuration.
+#
+# Module Federation requires remoteEntry.js to keep a stable, un-hashed
+# filename, which means it must NEVER be cached — every deploy of a remote
+# needs consuming hosts to pick up the new manifest immediately. Everything
+# under /assets/*, by contrast, is content-hashed by Vite and safe to cache
+# forever.
+
+[[headers]]
+  for = "/**/remoteEntry.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"

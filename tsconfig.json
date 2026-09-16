@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "packages/*/src/**/*",
+    "scripts/**/*",
+    "test/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/node_modules/*",
+    "**/dist/*",
+    ".demo-backup"
+  ]
+}
