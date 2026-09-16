@@ -1,107 +1,237 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router";
+import { useStore } from "../context/StoreContext";
+import { CATEGORIES } from "../data/products";
+import ProductCard from "../components/ProductCard";
+import CartDrawer from "../components/CartDrawer";
 import MfeDevWidget from "../components/MfeDevWidget";
 
-function DemoLandingPage() {
+export default function DemoLandingPage() {
+  const {
+    products,
+    totalCartCount,
+    setIsCartOpen,
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    currency,
+    setCurrency,
+    showOutOfStock,
+    toastMessage,
+  } = useStore();
+
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
+
+  // Filter products by search query, category, and out-of-stock toggle
+  const filteredProducts = products.filter((product) => {
+    const matchesCategory =
+      selectedCategory === "All" || product.category === selectedCategory;
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStock = showOutOfStock || product.stock > 0;
+    return matchesCategory && matchesSearch && matchesStock;
+  });
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 p-6">
-      <div className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Module Dashboard Header */}
-        <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <span className="bg-indigo-50 text-indigo-600 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider">
-              Remote Module Active
+    <div className="min-h-screen bg-slate-50 text-slate-800 pb-20">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 border border-slate-700 animate-bounce">
+          <span>✨</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Cart Drawer Slide-Over */}
+      <CartDrawer />
+
+      {/* Store Header & Action Bar */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl p-2 rounded-xl bg-blue-50 border border-blue-100">
+              ⚡
             </span>
-            <h2 className="text-xl font-bold text-slate-900 mt-1">
-              Demo Service Dashboard
-            </h2>
-            <p className="text-xs text-slate-400">
-              Monitoring real-time micro-frontend performance statistics.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black tracking-tight text-slate-900">
+                  CloudStore Pro
+                </h1>
+                <span className="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Live Remote MFE
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Autonomous micro-frontend for developer gear & cloud infrastructure.
+              </p>
+            </div>
           </div>
 
-          {/* Main Action Link: Settings Page */}
-          <Link
-            to="settings"
-            className="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-700 px-4 py-2 text-xs font-semibold text-white transition-colors shadow-sm gap-1.5"
-          >
-            <svg
-              xmlns="http://w3.org"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-3.5 h-3.5"
+          {/* Quick Header Actions: Currency Switcher, Settings, Cart Button */}
+          <div className="flex items-center gap-3">
+            {/* Currency Selector */}
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Change Currency"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            Module Settings
-          </Link>
-        </div>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
 
-        {/* Dashboard Operational Grid */}
-        <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* Analytics Stat 1 */}
-          <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Hydration Speed
-            </p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">124ms</p>
-            <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded">
-              Optimal
-            </span>
-          </div>
+            {/* Store Settings Link */}
+            <Link
+              to="settings"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              ⚙️ Preferences
+            </Link>
 
-          {/* Analytics Stat 2 */}
-          <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Vite Memory Load
-            </p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">42.8 MB</p>
-            <span className="text-[10px] text-indigo-600 font-medium bg-indigo-50 px-1.5 py-0.5 rounded">
-              Isolated
-            </span>
-          </div>
-
-          {/* Analytics Stat 3 */}
-          <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl">
-            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Share Scope Status
-            </p>
-            <p className="text-2xl font-bold text-slate-900 mt-1">3/3 Loaded</p>
-            <span className="text-[10px] text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded">
-              Synchronized
-            </span>
+            {/* Cart Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="relative inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm hover:shadow transition-all"
+            >
+              <span>🛒 Cart</span>
+              <span className="bg-white text-blue-700 rounded-full px-1.5 py-0.2 text-[11px] font-black">
+                {totalCartCount}
+              </span>
+            </button>
           </div>
         </div>
-        
-        {/* Development Testing Feature Area */}
-        <div className="px-6 pb-6">
-          <MfeDevWidget title="Demo Service Standalone Testing Feature" />
-        </div>
+      </header>
 
-        {/* Mock Informational Footer Block */}
-        <div className="bg-slate-50 px-6 py-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-          <span>
-            Target Path Context:{" "}
-            <code className="bg-white border border-slate-200 px-1 py-0.5 rounded font-mono text-[10px]">
-              /demo/*
-            </code>
-          </span>
-          <span>Runtime: React 18+</span>
-        </div>
-      </div>
+      {/* Main Storefront Container */}
+      <main className="max-w-6xl mx-auto px-6 pt-8 space-y-6">
+        {/* Hero Banner */}
+        <section className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Interactive Micro-Frontend Showcase
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Gear Up for Cloud-Native Engineering
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Every card below is rendered autonomously by <code>demoService</code>. Adding items to cart broadcasts real-time events to the Host Shell over the Cross-MFE Event Bus!
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs font-medium">
+            <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+              🚀 React 19 Sub-App
+            </span>
+            <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+              ⚡ Module Federation
+            </span>
+            <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+              🔄 Cross-MFE Events
+            </span>
+          </div>
+        </section>
+
+        {/* Filter & Search Bar */}
+        <section className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* Category Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  selectedCategory === cat
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full md:w-72">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
+              🔍
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search hardware, cloud..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800"
+            />
+          </div>
+        </section>
+
+        {/* Product Catalog Grid */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-slate-700">
+              Showing {filteredProducts.length} Products
+            </h3>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="text-xs text-blue-600 hover:underline font-semibold"
+              >
+                Clear search "{searchQuery}"
+              </button>
+            )}
+          </div>
+
+          {filteredProducts.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
+              <span className="text-4xl">🔎</span>
+              <h4 className="text-base font-bold text-slate-800">No products found</h4>
+              <p className="text-xs text-slate-400">
+                Try changing your search terms or selecting a different category.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {filteredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Floating/Collapsible MFE Diagnostics Toolbar */}
+        <section className="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm mt-10">
+          <button
+            type="button"
+            onClick={() => setIsDiagnosticsOpen((prev) => !prev)}
+            className="w-full px-6 py-3.5 bg-slate-50 hover:bg-slate-100 flex items-center justify-between transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span>🛠️</span>
+              <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                MFE Testing & Diagnostics Drawer
+              </span>
+              <span className="text-[10px] bg-indigo-100 text-indigo-700 font-semibold px-2 py-0.5 rounded-full">
+                Developer Utility
+              </span>
+            </div>
+            <span className="text-xs font-bold text-slate-400">
+              {isDiagnosticsOpen ? "▲ Collapse" : "▼ Expand"}
+            </span>
+          </button>
+
+          {isDiagnosticsOpen && (
+            <div className="p-6 border-t border-slate-200">
+              <MfeDevWidget title="CloudStore Remote MFE Diagnostics" />
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
-
-export default DemoLandingPage;

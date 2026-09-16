@@ -1,19 +1,41 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router";
+import { useStore } from "../context/StoreContext";
 import { Button } from "@mfe/shared";
 
-function DemoSettingsPage() {
+export default function DemoSettingsPage() {
+  const {
+    currency,
+    setCurrency,
+    showOutOfStock,
+    setShowOutOfStock,
+    totalCartCount,
+    clearCart,
+  } = useStore();
+
+  const [savedNotice, setSavedNotice] = useState(false);
+
+  function handleSave() {
+    setSavedNotice(true);
+    setTimeout(() => setSavedNotice(false), 2000);
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 p-6">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         {/* Top Header Section */}
         <div className="p-6 border-b border-slate-100 bg-slate-900 text-white flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold tracking-tight">
-              Demo Service Settings
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Manage local configurations and core parameters.
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold tracking-tight">
+                CloudStore Preferences & Configuration
+              </h2>
+              <span className="text-[10px] bg-blue-500/20 text-blue-300 font-semibold px-2 py-0.5 rounded-full border border-blue-400/30">
+                Remote Settings
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Configure storefront parameters, currency conversion, and test cross-MFE reset flows.
             </p>
           </div>
 
@@ -21,97 +43,125 @@ function DemoSettingsPage() {
           <Link
             to=".."
             relative="path"
-            className="inline-flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors shadow-sm"
+            className="inline-flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 px-3.5 py-1.5 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors shadow-sm gap-1"
           >
-            ← Back to Overview
+            ← Back to Store
           </Link>
         </div>
 
-        {/* Settings Form Placeholder Body */}
+        {/* Settings Body */}
         <div className="p-6 space-y-6">
-          {/* Section 1: Endpoint Config */}
-          <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Module Network Parameters
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">
-                  Target Base URL
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value="http://localhost:5001"
-                  className="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-500 cursor-not-allowed"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">
-                  Share Scope Mode
-                </label>
-                <input
-                  type="text"
-                  disabled
-                  value="Singleton Premium"
-                  className="w-full text-xs bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-slate-500 cursor-not-allowed"
-                />
-              </div>
+          {savedNotice && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+              <span>✓</span> Preferences updated successfully!
             </div>
-          </div>
+          )}
 
-          <hr className="border-slate-100" />
-
-          {/* Section 2: Toggles */}
+          {/* Section 1: Store Currency & Localization */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-slate-900">
-              Development Environment Options
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>🌐</span> Currency & Localization
             </h3>
-
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <div>
-                <p className="text-xs font-medium text-slate-800">
-                  Verbose Runtime Logging
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  Stream micro-frontend orchestration logs directly to the
-                  console.
-                </p>
-              </div>
-              <div className="h-5 w-9 bg-blue-600 rounded-full p-0.5 cursor-pointer flex justify-end items-center">
-                <div className="h-4 w-4 bg-white rounded-full shadow-sm" />
-              </div>
+            <p className="text-xs text-slate-500">
+              Select your preferred currency. Changes take effect immediately across all product cards and cart calculations.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { code: "USD", name: "US Dollar ($)", symbol: "$" },
+                { code: "EUR", name: "Euro (€)", symbol: "€" },
+                { code: "GBP", name: "British Pound (£)", symbol: "£" },
+              ].map((cur) => (
+                <button
+                  key={cur.code}
+                  type="button"
+                  onClick={() => {
+                    setCurrency(cur.code);
+                    handleSave();
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    currency === cur.code
+                      ? "border-blue-600 bg-blue-50/50 text-blue-900 shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                  }`}
+                >
+                  <div className="text-sm font-bold">{cur.symbol} {cur.code}</div>
+                  <div className="text-[11px] text-slate-500 mt-0.5">{cur.name}</div>
+                </button>
+              ))}
             </div>
+          </div>
 
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+          {/* Section 2: Catalog Display Preferences */}
+          <div className="space-y-3 pt-4 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>📦</span> Catalog Display & Inventory
+            </h3>
+            <label className="flex items-center gap-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors">
+              <input
+                type="checkbox"
+                checked={showOutOfStock}
+                onChange={(e) => {
+                  setShowOutOfStock(e.target.checked);
+                  handleSave();
+                }}
+                className="w-4 h-4 rounded text-blue-600 border-slate-300 focus:ring-blue-500"
+              />
               <div>
-                <p className="text-xs font-medium text-slate-800">
-                  Strict Serialization Check
-                </p>
-                <p className="text-[11px] text-slate-400">
-                  Force error validation pipelines during hydration sequences.
-                </p>
+                <span className="text-xs font-semibold text-slate-800 block">
+                  Display Out-of-Stock Items
+                </span>
+                <span className="text-[11px] text-slate-400 block">
+                  When disabled, items with 0 stock are hidden from the store catalog.
+                </span>
               </div>
-              <div className="h-5 w-9 bg-slate-200 rounded-full p-0.5 cursor-pointer flex justify-start items-center">
-                <div className="h-4 w-4 bg-white rounded-full shadow-sm" />
+            </label>
+          </div>
+
+          {/* Section 3: Cart Management & Cross-MFE Data Reset */}
+          <div className="space-y-3 pt-4 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>🛒</span> Cart & Session Management
+            </h3>
+            <p className="text-xs text-slate-500">
+              Current cart holds <strong>{totalCartCount}</strong> items. Clearing will update the Host Header badge in real time via the event bus.
+            </p>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="danger"
+                onClick={clearCart}
+                disabled={totalCartCount === 0}
+              >
+                Clear Cart Items
+              </Button>
+            </div>
+          </div>
+
+          {/* Section 4: Module Federation Runtime Diagnostics */}
+          <div className="space-y-3 pt-4 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span>⚡</span> Federation Network Metadata
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-slate-400 block text-[10px] font-semibold uppercase">
+                  Service Name & Port
+                </span>
+                <span className="font-mono font-bold text-slate-800">
+                  demoService (Port 5001)
+                </span>
+              </div>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <span className="text-slate-400 block text-[10px] font-semibold uppercase">
+                  Federation Entry Point
+                </span>
+                <span className="font-mono font-bold text-slate-800">
+                  /assets/remoteEntry.js
+                </span>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Footer Area */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => alert("Demo settings saved successfully!")}
-          >
-            Save Changes
-          </Button>
         </div>
       </div>
     </div>
   );
 }
-
-export default DemoSettingsPage;

@@ -8,18 +8,27 @@ import { useMfeEventListener, sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
 const RemoteMfeDevWidget = React.lazy(() => import("demoService/MfeDevWidget"));
 
 function LandingPage() {
-  const [eventsFeed, setEventsFeed] = useState([]);
+  const [eventsFeed, setEventsFeed] = useState([
+    {
+      id: "init-1",
+      sender: "System Bus",
+      type: "SYSTEM",
+      message: "Monorepo Event Bus initialized and listening for Remote actions",
+      time: new Date().toLocaleTimeString(),
+    },
+  ]);
 
   // Listen for Cross-MFE Pings from any remote micro-frontend
   useMfeEventListener(MFE_EVENTS.PING, (detail) => {
     setEventsFeed((prev) => [
       {
-        id: Date.now(),
-        sender: detail.sender,
-        message: detail.message,
-        time: new Date(detail.timestamp).toLocaleTimeString(),
+        id: Date.now() + Math.random(),
+        sender: detail.sender || "Remote",
+        type: "PING",
+        message: detail.message || "Ping received",
+        time: new Date(detail.timestamp || Date.now()).toLocaleTimeString(),
       },
-      ...prev.slice(0, 4), // keep last 5 events
+      ...prev.slice(0, 5),
     ]);
 
     // Send automated pong response
@@ -28,21 +37,68 @@ function LandingPage() {
     });
   });
 
+  // Listen for Cross-MFE Cart & Notification events
+  useMfeEventListener("mfe:cart_update", (detail) => {
+    setEventsFeed((prev) => [
+      {
+        id: Date.now() + Math.random(),
+        sender: detail.sender || "CloudStore Remote",
+        type: "CART",
+        message: detail.product
+          ? `Added "${detail.product}" (Cart items: ${detail.count})`
+          : `Cart count changed to ${detail.count}`,
+        time: new Date().toLocaleTimeString(),
+      },
+      ...prev.slice(0, 5),
+    ]);
+  });
+
+  useMfeEventListener("mfe:order_placed", (detail) => {
+    setEventsFeed((prev) => [
+      {
+        id: Date.now() + Math.random(),
+        sender: detail.sender || "CloudStore Remote",
+        type: "ORDER",
+        message: `Order #${detail.orderId} placed for ${detail.total}! (${detail.itemCount} items)`,
+        time: new Date(detail.timestamp || Date.now()).toLocaleTimeString(),
+      },
+      ...prev.slice(0, 5),
+    ]);
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 pb-12">
       {/* Hero Header Area */}
-      <header className="bg-white border-b border-slate-200 py-8 px-6 shadow-sm">
+      <header className="bg-white border-b border-slate-200 py-10 px-6 shadow-sm">
         <div className="max-w-6xl mx-auto text-center">
-          <span className="bg-blue-50 text-blue-600 text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">
-            Workspace Shell
-          </span>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-            Micro-Frontend Monorepo Hub
-          </h2>
-          <p className="mt-2 text-sm text-slate-500 max-w-xl mx-auto">
-            A production-ready orchestration platform managing independent,
-            isolated applications over Vite Module Federation.
+          <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200/60 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider mb-3">
+            <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse"></span>
+            Workspace Host Shell
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+            Nexus Micro-Frontend Monorepo
+          </h1>
+          <p className="mt-3 text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+            A production-grade Vite 8 + Module Federation architecture featuring an interactive real-world
+            developer gear storefront (<span className="font-semibold text-slate-800">CloudStore Pro</span>),
+            cross-MFE event bus telemetry, and isolated remote micro-frontends.
           </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link
+              to="/demo"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+            >
+              <span>🛍️</span>
+              <span>Open CloudStore Pro Demo</span>
+            </Link>
+            <Link
+              to="/demo/settings"
+              className="inline-flex items-center gap-2 rounded-lg bg-white border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+            >
+              <span>⚙️</span>
+              <span>Store Configuration</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -50,50 +106,122 @@ function LandingPage() {
       <main className="max-w-6xl mx-auto p-6 mt-6 space-y-8">
         {/* Available Sub-Services Grid */}
         <section>
-          <h3 className="text-lg font-semibold text-slate-700 mb-4">
-            Available Sub-Services
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Connected Micro-Frontend Services
+              </h2>
+              <p className="text-xs text-slate-500">
+                Independent Vite applications federated together into this Host Shell
+              </p>
+            </div>
+            <span className="text-xs font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium">
+              1 Remote Active
+            </span>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Service Card: Demo Application */}
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+            {/* Service Card: Real CloudStore Pro Application */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between border-t-4 border-t-blue-600">
               <div>
                 <div className="flex items-center justify-between">
-                  <span
-                    className="flex h-2 w-2 rounded-full bg-emerald-500"
-                    title="Online"
-                  />
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-ping"
+                      title="Online"
+                    />
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                      Live Remote
+                    </span>
+                  </div>
                   <span className="text-xs font-mono text-slate-400">
                     Port: 5001
                   </span>
                 </div>
-                <h4 className="mt-2 font-bold text-slate-900 text-lg">
-                  Demo Service Module
-                </h4>
-                <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                  Full sub-app with internal routing, settings view, and
-                  isolated business domain components.
+                <h3 className="mt-3 font-bold text-slate-900 text-lg flex items-center gap-2">
+                  <span>🛍️</span>
+                  <span>CloudStore Pro</span>
+                </h3>
+                <p className="mt-2 text-xs text-slate-600 leading-relaxed">
+                  Real e-commerce storefront with product catalog (Hardware, Cloud, Tools),
+                  instant search, category tabs, currency switching, interactive cart drawer, and order checkout.
                 </p>
+
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">Cart Drawer</span>
+                  <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">Event Bus Sync</span>
+                  <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">Multi-Currency</span>
+                </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-slate-100">
+              <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2">
                 <Link
                   to="/demo"
                   className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 transition-colors"
                 >
-                  Launch Application (/demo) →
+                  Launch Storefront (/demo) →
+                </Link>
+                <Link
+                  to="/demo/settings"
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-slate-100 px-4 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-200 transition-colors"
+                >
+                  Configure Store Settings
                 </Link>
               </div>
             </div>
 
+            {/* Architecture Card */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between border-t-4 border-t-emerald-600">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Architecture
+                  </span>
+                  <span className="text-xs font-mono text-slate-400">
+                    Vite 8 + ESM
+                  </span>
+                </div>
+                <h3 className="mt-3 font-bold text-slate-900 text-lg flex items-center gap-2">
+                  <span>⚡</span>
+                  <span>Zero-Config MFE Preset</span>
+                </h3>
+                <p className="mt-2 text-xs text-slate-600 leading-relaxed">
+                  Powered by <code>@mfe/vite-config</code>. Standardizes remote entry, shared singletons
+                  (React 19, react-router 8), and CSS bundle minification fixes across all workspaces.
+                </p>
+
+                <div className="mt-4 space-y-1.5 text-xs text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-600">✓</span>
+                    <span>Turborepo pipeline caching</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-emerald-600">✓</span>
+                    <span>Dual-mode standalone & host embed</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <a
+                  href="http://localhost:5001"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-full items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                >
+                  Open Standalone Remote ↗
+                </a>
+              </div>
+            </div>
+
             {/* Placeholder for future growth */}
-            <div className="bg-slate-100 rounded-xl border border-dashed border-slate-300 p-5 flex flex-col items-center justify-center text-center opacity-70">
-              <span className="text-2xl text-slate-400">+</span>
-              <h4 className="font-semibold text-slate-600 text-sm mt-1">
-                Add New Remote
+            <div className="bg-slate-100/70 rounded-xl border border-dashed border-slate-300 p-5 flex flex-col items-center justify-center text-center">
+              <span className="text-2xl text-slate-400 mb-1">➕</span>
+              <h4 className="font-semibold text-slate-700 text-sm">
+                Add Micro-Frontend
               </h4>
-              <p className="text-xs text-slate-400 mt-1 max-w-[200px]">
-                Create a new package in <code>packages/</code> and register in <code>vite.config.js</code>.
+              <p className="text-xs text-slate-500 mt-1 max-w-[200px]">
+                Create a package in <code>packages/</code> with <code>createMfeConfig()</code> in under 10 lines.
               </p>
             </div>
           </div>
@@ -138,22 +266,36 @@ function LandingPage() {
                   </span>
                 </div>
 
-                <div className="mt-3 space-y-2">
+                <div className="mt-3 space-y-2 max-h-72 overflow-y-auto pr-1">
                   {eventsFeed.length === 0 ? (
                     <p className="text-xs text-slate-400 italic py-4 text-center">
-                      No incoming events yet. Click "Send MFE Ping" in the widget to test!
+                      No incoming events yet. Click "Send MFE Ping" or add products to cart to test!
                     </p>
                   ) : (
                     eventsFeed.map((evt) => (
                       <div
                         key={evt.id}
-                        className="text-[11px] p-2 rounded bg-slate-50 border border-slate-100"
+                        className="text-[11px] p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 transition-all hover:bg-white hover:shadow-xs"
                       >
-                        <div className="flex justify-between font-mono text-slate-400 text-[10px]">
-                          <span>{evt.sender}</span>
+                        <div className="flex items-center justify-between font-mono text-slate-400 text-[10px] mb-1">
+                          <span className="flex items-center gap-1.5 font-medium text-slate-600">
+                            {evt.type === "ORDER" && (
+                              <span className="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 font-bold text-[9px]">ORDER</span>
+                            )}
+                            {evt.type === "CART" && (
+                              <span className="px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 font-bold text-[9px]">CART</span>
+                            )}
+                            {evt.type === "PING" && (
+                              <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 font-bold text-[9px]">PING</span>
+                            )}
+                            {evt.type === "SYSTEM" && (
+                              <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-bold text-[9px]">SYS</span>
+                            )}
+                            <span>{evt.sender}</span>
+                          </span>
                           <span>{evt.time}</span>
                         </div>
-                        <p className="font-medium text-slate-700 mt-0.5">{evt.message}</p>
+                        <p className="font-medium text-slate-800 leading-snug">{evt.message}</p>
                       </div>
                     ))
                   )}
