@@ -1,4 +1,5 @@
 export * from "./events/mfe-events.d.ts";
+export * from "./adapters/index.d.ts";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "danger";

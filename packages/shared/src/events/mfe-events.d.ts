@@ -24,7 +24,13 @@ export function sendMfeEvent<T extends MfeEventPayload = MfeEventPayload>(
   payload?: T
 ): void;
 
+export function listenMfeEvent<T = MfeEventPayload>(
+  eventName: string,
+  handler: (detail: T) => void
+): () => void;
+
 export function useMfeEventListener<T = MfeEventPayload>(
   eventName: string,
   handler: (detail: T) => void
 ): void;
+

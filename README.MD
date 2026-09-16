@@ -1,10 +1,11 @@
 # Micro-Frontend Monorepo Starter Framework
 
-A modern, production-ready starter project framework for **Micro-Frontends (MFE)** using **pnpm Workspaces**, **Vite Module Federation**, **React 19**, **React Router v8**, and **Tailwind CSS v4**.
+A modern, production-ready starter project framework for **Micro-Frontends (MFE)** using **pnpm Workspaces**, **Turborepo**, **Vite Module Federation**, **React 19**, **React Router v8**, and **Tailwind CSS v4**.
 
 Designed to split monolithic web applications into decoupled, independently deployable frontend packages while maintaining a unified developer experience.
 
 > 📚 **Comprehensive Internal Specification**: For an in-depth breakdown of module federation internals, singletons, routing mechanics, event bus lifecycle, and production architecture, see the **[Version 1.0.0 Technical Documentation](docs/v1.0.0_DOCUMENTATION.md)**.
+> 🌐 **Multi-Framework Guide**: To build and integrate micro-frontends with **Vue 3**, **Svelte 5**, **SolidJS**, or **Vanilla JS**, see the **[Multi-Framework Architecture Guide](docs/MULTI_FRAMEWORK_GUIDE.md)**.
 
 ---
 
@@ -13,6 +14,7 @@ Designed to split monolithic web applications into decoupled, independently depl
 ```
 mfe/ (Root Workspace)
 ├── .github/workflows/ci.yml       # GitHub Actions automated lint & build pipeline
+├── turbo.json                     # Turborepo task pipeline & caching graph
 ├── remotes.manifest.json          # Single Source of Truth for all remote micro-frontends
 ├── scripts/                       # Scaled workspace orchestration (orchestrate.js, manifest.js)
 ├── packages/
@@ -167,14 +169,14 @@ to validate type contracts across all packages without blocking rapid JavaScript
 | :--- | :--- |
 | `pnpm dev` | Dynamically builds all remotes from manifest, then concurrently starts remote watch, remote preview, and host dev. |
 | `pnpm dev:only <name>` | Targeted DX: Builds and boots **only** the Host Shell and a specific Remote (e.g. `pnpm dev:only demoService`). |
-| `pnpm build` | Production build: builds all remotes declared in `remotes.manifest.json`, followed by the host container. |
-| `pnpm build:remotes` | Builds all remote micro-frontends declared in `remotes.manifest.json`. |
+| `pnpm build` | Production build across all packages using **Turborepo** with outputs caching (`>>> FULL TURBO`). |
+| `pnpm build:remotes` | Builds all remote micro-frontends using Turborepo (`turbo run build --filter=!host`). |
 | `pnpm remotes:list` | Prints a summary table of all active remotes configured in `remotes.manifest.json`. |
-| `pnpm typecheck` | Validates TypeScript types across host remotes and shared ambient contracts via `tsc --noEmit`. |
+| `pnpm typecheck` | Validates TypeScript types across all packages via Turborepo (`turbo run typecheck`). |
 | `pnpm test` | Runs all automated unit and integration tests via Vitest. |
 | `pnpm test:watch` | Runs Vitest in interactive watch mode. |
 | `pnpm test:coverage` | Generates full code coverage report via `@vitest/coverage-v8`. |
-| `pnpm lint` | Runs `oxlint` across all packages in the workspace. |
+| `pnpm lint` | Runs `oxlint` across all workspace packages via Turborepo (`turbo run lint`). |
 | `pnpm preview` | Serves the production build of the host shell. |
 | `pnpm reset:demo` | Backs up and removes `demoService`, resetting the host shell into a clean starter setup. |
 | `pnpm restore:demo` | Restores the demo service showcase and configuration from `.demo-backup/`. |
@@ -221,44 +223,28 @@ Adding a new micro-frontend is completely decoupled and automated through `remot
    pnpm --filter myService add react react-dom react-router @mfe/shared
    pnpm --filter myService add -D vite @vitejs/plugin-react @originjs/vite-plugin-federation @tailwindcss/vite tailwindcss
    ```
-3. **Configure Federation**:
-   In `packages/myService/vite.config.js`:
+3. **Configure Federation (`defineRemoteConfig`)**:
+   In `packages/myService/vite.config.js`, use the centralized preset from `@mfe/shared/vite`:
    ```javascript
-   import federation from "@originjs/vite-plugin-federation";
-   import react from "@vitejs/plugin-react";
-   import { defineConfig } from "vite";
+   import { defineRemoteConfig } from "@mfe/shared/vite";
 
-   export default defineConfig(({ mode }) => ({
-     plugins: [
-       react(),
-       federation({
-         name: "myService",
-         filename: "remoteEntry.js",
-         exposes: {
-           "./App": "./src/App.jsx",
-         },
-         shared: {
-           react: { singleton: true, requiredVersion: "^19.0.0" },
-           "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
-           "react-router": { singleton: true, requiredVersion: "^8.0.0" },
-         },
-       }),
-       // Resolves Vite 8 minification template literal placeholder
-       {
-         name: "federation-css-fix",
-         enforce: "post",
-         generateBundle(options, bundle) {
-           const entryKey = Object.keys(bundle).find(k => k.endsWith("remoteEntry.js"));
-           if (!entryKey || !bundle[entryKey]?.code) return;
-           const cssFiles = Object.keys(bundle).filter(n => n.endsWith(".css")).map(n => n.split("/").pop());
-           bundle[entryKey].code = bundle[entryKey].code.replace(/(["'`])__v__css__.*?\1/g, JSON.stringify(cssFiles));
-         }
-       }
-     ],
-     preview: { port: 5002, strictPort: true, headers: { "Access-Control-Allow-Origin": "*" } },
-     build: { target: "esnext", minify: mode === "production", cssCodeSplit: false }
-   }));
+   export default defineRemoteConfig({
+     name: "myService",
+     // Port is auto-inferred from remotes.manifest.json, or can be set explicitly:
+     // port: 5002,
+     exposes: {
+       "./App": "./src/App.jsx",
+     },
+   });
    ```
+
+   #### 🛠️ Adding Custom Settings & Overrides:
+   `defineRemoteConfig` is completely extensible:
+   - **Custom Plugins**: Pass extra plugins in `plugins: [svgr()]`.
+   - **Extra Shared Dependencies**: Pass `shared: { "zustand": { singleton: true } }` (React 19 singletons are preserved automatically).
+   - **Custom Vite Settings**: Pass `resolve.alias`, `server.proxy`, etc., which are merged with defaults.
+   - **Dynamic / Mode-Based Config**: Pass a function `defineRemoteConfig(({ mode }) => ({ ... }))` or use the `extend: (config, env) => { ... }` escape-hatch hook.
+
 4. **Register in `remotes.manifest.json`**:
    Add one entry to the root manifest—**no need to touch `host/vite.config.js` or `package.json` scripts**:
    ```json

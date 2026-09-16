@@ -9,15 +9,53 @@
     ".": "./src/index.js",
     "./events": "./src/events/mfe-events.js",
     "./constants": "./src/constants/config.js",
-    "./components/Button": "./src/components/Button.jsx"
+    "./components/Button": "./src/components/Button.jsx",
+    "./adapters": {
+      "types": "./src/adapters/index.d.ts",
+      "default": "./src/adapters/index.js"
+    },
+    "./vite": {
+      "types": "./src/vite/index.d.ts",
+      "default": "./src/vite/index.js"
+    }
   },
   "scripts": {
-    "lint": "oxlint"
+    "build": "echo @mfe/shared is ready",
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "react": "^19.0.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@originjs/vite-plugin-federation": "^1.4.1",
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
+    "vite": "^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    },
+    "@originjs/vite-plugin-federation": {
+      "optional": true
+    },
+    "@tailwindcss/vite": {
+      "optional": true
+    },
+    "@vitejs/plugin-react": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
   },
   "devDependencies": {
-    "oxlint": "^1.81.0"
+    "@originjs/vite-plugin-federation": "^1.4.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "vite": "^8.3.0"
   }
 }

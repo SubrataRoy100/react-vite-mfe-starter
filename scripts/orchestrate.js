@@ -50,18 +50,13 @@ switch (action) {
     }
     const filterArgs = getBuildFilterArgs(activeManifest).join(" ");
     console.log(`Building remotes: ${activeRemotes.join(", ")}...`);
-    execSync(`pnpm ${filterArgs} build`, { stdio: "inherit", shell: true });
+    execSync(`pnpm exec turbo run build ${filterArgs}`, { stdio: "inherit", shell: true });
     break;
   }
 
   case "build": {
-    if (remotes.length > 0) {
-      const filterArgs = getBuildFilterArgs(manifest).join(" ");
-      console.log(`Building remotes: ${remotes.join(", ")}...`);
-      execSync(`pnpm ${filterArgs} build`, { stdio: "inherit", shell: true });
-    }
-    console.log("Building host application shell...");
-    execSync("pnpm --filter host build", { stdio: "inherit", shell: true });
+    console.log("Running production monorepo build with Turborepo...");
+    execSync("pnpm exec turbo run build", { stdio: "inherit", shell: true });
     break;
   }
 
@@ -69,7 +64,7 @@ switch (action) {
     if (activeRemotes.length > 0) {
       const filterArgs = getBuildFilterArgs(activeManifest).join(" ");
       console.log(`Performing initial build for remotes: ${activeRemotes.join(", ")}...`);
-      execSync(`pnpm ${filterArgs} build`, { stdio: "inherit", shell: true });
+      execSync(`pnpm exec turbo run build ${filterArgs}`, { stdio: "inherit", shell: true });
     }
 
     const devCommands = [

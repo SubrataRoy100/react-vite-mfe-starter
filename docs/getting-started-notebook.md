@@ -118,49 +118,26 @@ Add the three domain services to `remotes.manifest.json`:
 
 ### 1.2 Configure Remote Federation Provider (`packages/productService/vite.config.js`)
 
-Each remote exposes its root sub-app and individual components:
+Each remote uses the high-level preset from `@mfe/shared/vite` to expose its root sub-app and components:
 
 ```javascript
-import federation from "@originjs/vite-plugin-federation";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import { defineRemoteConfig } from "@mfe/shared/vite";
 
-export default defineConfig(({ mode }) => ({
-  plugins: [
-    react(),
-    tailwindcss(),
-    federation({
-      name: "productService",
-      filename: "remoteEntry.js",
-      exposes: {
-        // Expose full sub-application
-        "./App": "./src/App.jsx",
-        // Expose reusable standalone widget
-        "./ProductCard": "./src/components/ProductCard.jsx",
-      },
-      shared: {
-        // Enforce singletons to prevent "Invalid Hook Call" exceptions
-        react: { singleton: true, requiredVersion: "^19.0.0" },
-        "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
-        "react-router": { singleton: true, requiredVersion: "^8.0.0" },
-      },
-    }),
-  ],
-  preview: {
-    port: 5001,
-    strictPort: true,
-    headers: {
-      "Access-Control-Allow-Origin": "*", // Mandatory for cross-origin host loading
-    },
+export default defineRemoteConfig({
+  name: "productService",
+  // Port is auto-inferred from remotes.manifest.json (port 5001)
+  exposes: {
+    // Expose full sub-application
+    "./App": "./src/App.jsx",
+    // Expose reusable standalone widget
+    "./ProductCard": "./src/components/ProductCard.jsx",
   },
-  build: {
-    target: "esnext",
-    minify: mode === "production",
-    cssCodeSplit: false,
-  },
-}));
+});
 ```
+
+> [!TIP]
+> `defineRemoteConfig` automatically configures React 19 singletons, Tailwind CSS v4, the `federation-css-fix` plugin, and strict preview ports with CORS headers.
+
 
 ---
 

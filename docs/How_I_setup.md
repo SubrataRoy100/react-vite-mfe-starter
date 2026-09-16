@@ -413,7 +413,7 @@ Adding a new micro-frontend is manifest-driven and completely automated:
    pnpm --filter billingService add -D vite @vitejs/plugin-react @originjs/vite-plugin-federation @tailwindcss/vite tailwindcss oxlint
    ```
 3. **Configure `vite.config.js`**:
-   Set `name: "billingService"`, configure `port: 5002`, expose `./App`, and include `federation-css-fix`.
+   Use `defineRemoteConfig` from `@mfe/shared/vite`, specifying `name: "billingService"` and exposing `./App`. Port, Tailwind, React 19 singletons, and `federation-css-fix` are configured automatically.
 4. **Register in `remotes.manifest.json`**:
    ```json
    {

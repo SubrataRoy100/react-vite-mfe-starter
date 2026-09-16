@@ -8,7 +8,8 @@
     "build": "vite build",
     "watch": "vite build --watch --mode development",
     "preview": "vite preview --port 5001 --strictPort",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@mfe/shared": "workspace:*",
