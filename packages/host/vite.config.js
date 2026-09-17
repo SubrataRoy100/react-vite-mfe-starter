@@ -4,7 +4,7 @@ import federation from "@originjs/vite-plugin-federation";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
-import { DEFAULT_SHARED_DEPS } from "@mfe/shared/vite";
+import { DEFAULT_SHARED_DEPS } from "@subrataroy100/mfe-shared/vite";
 
 // Single source of truth for every remote micro-frontend in the workspace.
 // Adding a new remote to the manifest is enough to wire it into the host's

@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
-import { MFE_EVENTS, sendMfeEvent } from "@mfe/shared";
+import { MFE_EVENTS, sendMfeEvent } from "@subrataroy100/mfe-shared";
 import MfeDevWidget from "./MfeDevWidget.jsx";
 
 // Minimal local boundary so this package's tests don't need to depend on

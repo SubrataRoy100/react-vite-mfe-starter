@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router";
 import RetriableRemote from "../components/RetriableRemote";
-import { MFE_EVENTS } from "@mfe/shared";
-import { useMfeEventListener } from "@mfe/shared/adapters";
+import { MFE_EVENTS } from "@subrataroy100/mfe-shared";
+import { useMfeEventListener } from "@subrataroy100/mfe-shared/adapters";
 
 const loadDevWidget = () => import("demoService/MfeDevWidget");
 

@@ -38,8 +38,8 @@ export default App;
 `;
 
 export const CLEAN_HOST_LANDING_PAGE = `import React, { useState } from "react";
-import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
-import { useMfeEventListener } from "@mfe/shared/adapters";
+import { sendMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared";
+import { useMfeEventListener } from "@subrataroy100/mfe-shared/adapters";
 
 function LandingPage() {
   const [eventsFeed, setEventsFeed] = useState([]);
@@ -145,7 +145,7 @@ function LandingPage() {
           <div className="mt-4">
             {eventsFeed.length === 0 ? (
               <p className="text-xs text-slate-400 italic py-6 text-center">
-                No events received yet. When your remotes dispatch CustomEvents via @mfe/shared, they will appear here in real time.
+                No events received yet. When your remotes dispatch CustomEvents via @subrataroy100/mfe-shared, they will appear here in real time.
               </p>
             ) : (
               <div className="space-y-2">

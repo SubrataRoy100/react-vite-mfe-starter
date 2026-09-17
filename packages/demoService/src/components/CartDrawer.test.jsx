@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import CartDrawer from "./CartDrawer.jsx";
 import { StoreProvider, useStore } from "../context/StoreContext.jsx";
-import { MFE_EVENTS } from "@mfe/shared";
+import { MFE_EVENTS } from "@subrataroy100/mfe-shared";
 
 function CartDrawerHarness() {
   const { setIsCartOpen } = useStore();

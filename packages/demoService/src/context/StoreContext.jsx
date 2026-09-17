@@ -1,7 +1,7 @@
 /* oxlint-disable react/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { PRODUCTS, CURRENCIES } from "../data/products.js";
-import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
+import { sendMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared";
 
 const StoreContext = createContext(null);
 

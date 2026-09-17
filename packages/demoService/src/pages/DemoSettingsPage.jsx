@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router";
 import { useStore } from "../context/StoreContext";
-import Button from "@mfe/shared/components/Button";
+import Button from "@subrataroy100/mfe-shared/components/Button";
 
 export default function DemoSettingsPage() {
   const {

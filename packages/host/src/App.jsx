@@ -4,8 +4,8 @@ import LoadingFallback from "./components/LoadingFallback";
 
 import Navbar from "./components/Navbar";
 import RetriableRemote from "./components/RetriableRemote";
-import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
-import { useMfeEventListener } from "@mfe/shared/adapters";
+import { sendMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared";
+import { useMfeEventListener } from "@subrataroy100/mfe-shared/adapters";
 
 const LandingPage = React.lazy(() => import("./pages/LandingPage"));
 const loadDemoServiceApp = () => import("demoService/App");

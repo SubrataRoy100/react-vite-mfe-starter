@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { StoreProvider, useStore } from "./StoreContext.jsx";
 import { PRODUCTS } from "../data/products.js";
-import { MFE_EVENTS } from "@mfe/shared";
+import { MFE_EVENTS } from "@subrataroy100/mfe-shared";
 
 describe("StoreContext", () => {
   it("initializes with default cart and currency", () => {

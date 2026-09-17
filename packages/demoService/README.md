@@ -6,7 +6,7 @@ An independent micro-frontend remote application demonstrating federated modules
 - **Role**: Sample remote micro-app and interactive diagnostics playground.
 - **Port**: `5001`
 - **Tech Stack**: React 19, React Router v8, Tailwind CSS v4, Vite 8, `@originjs/vite-plugin-federation`.
-- **Configured via**: `defineRemoteConfig` from `@mfe/shared/vite`.
+- **Configured via**: `defineRemoteConfig` from `@subrataroy100/mfe-shared/vite`.
 
 ---
 

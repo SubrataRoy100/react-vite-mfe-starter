@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useStore } from "../context/StoreContext";
-import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
+import { sendMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared";
 
 export default function CartDrawer() {
   const {

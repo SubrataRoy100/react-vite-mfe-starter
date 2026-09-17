@@ -44,7 +44,7 @@ React remotes can either expose a native component or a universal mount:
 
 **`packages/reactService/vite.config.js`**:
 ```javascript
-import { defineRemoteConfig } from "@mfe/shared/vite";
+import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
 
 export default defineRemoteConfig({
   name: "reactService",
@@ -67,7 +67,7 @@ export default defineRemoteConfig({
 
 2. **Configure `vite.config.js`**:
    ```javascript
-   import { defineRemoteConfig } from "@mfe/shared/vite";
+   import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
    import vue from "@vitejs/plugin-vue";
 
    export default defineRemoteConfig({
@@ -106,7 +106,7 @@ export default defineRemoteConfig({
 
 2. **Configure `vite.config.js`**:
    ```javascript
-   import { defineRemoteConfig } from "@mfe/shared/vite";
+   import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
    import { svelte } from "@sveltejs/vite-plugin-svelte";
 
    export default defineRemoteConfig({
@@ -142,7 +142,7 @@ export default defineRemoteConfig({
 
 2. **Configure `vite.config.js`**:
    ```javascript
-   import { defineRemoteConfig } from "@mfe/shared/vite";
+   import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
    import solid from "vite-plugin-solid";
 
    export default defineRemoteConfig({
@@ -172,7 +172,7 @@ export default defineRemoteConfig({
 
 1. **Configure `vite.config.js`**:
    ```javascript
-   import { defineRemoteConfig } from "@mfe/shared/vite";
+   import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
 
    export default defineRemoteConfig({
      name: "vanillaService",
@@ -185,7 +185,7 @@ export default defineRemoteConfig({
 
 2. **Expose Universal Mount (`src/mount.js`)**:
    ```javascript
-   import { createVanillaMount } from "@mfe/shared/adapters";
+   import { createVanillaMount } from "@subrataroy100/mfe-shared/adapters";
 
    export const { mount } = createVanillaMount((container, props) => {
      container.innerHTML = `
@@ -205,10 +205,10 @@ export default defineRemoteConfig({
 
 ## 3. Mounting Remotes in Host Shell
 
-The Host shell can mount any remote (React or non-React) using `<UniversalRemoteMount />` from `@mfe/shared/adapters`:
+The Host shell can mount any remote (React or non-React) using `<UniversalRemoteMount />` from `@subrataroy100/mfe-shared/adapters`:
 
 ```jsx
-import { UniversalRemoteMount } from "@mfe/shared/adapters";
+import { UniversalRemoteMount } from "@subrataroy100/mfe-shared/adapters";
 import { RemoteErrorBoundary } from "./components/RemoteErrorBoundary";
 import { LoadingFallback } from "./components/LoadingFallback";
 
@@ -231,11 +231,11 @@ import { LoadingFallback } from "./components/LoadingFallback";
 
 ## 4. Cross-MFE Communication Across Frameworks
 
-The event bus in `@mfe/shared/events` uses pure native DOM `CustomEvent` dispatching:
+The event bus in `@subrataroy100/mfe-shared/events` uses pure native DOM `CustomEvent` dispatching:
 
 * **Dispatching from any framework**:
   ```javascript
-  import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared/events";
+  import { sendMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared/events";
 
   sendMfeEvent(MFE_EVENTS.NOTIFICATION, {
     message: "Action completed in Vue/Svelte remote",
@@ -244,7 +244,7 @@ The event bus in `@mfe/shared/events` uses pure native DOM `CustomEvent` dispatc
 
 * **Listening in non-React frameworks (Vanilla, Vue, Svelte)**:
   ```javascript
-  import { listenMfeEvent, MFE_EVENTS } from "@mfe/shared/events";
+  import { listenMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared/events";
 
   // Returns an unsubscribe function:
   const unsubscribe = listenMfeEvent(MFE_EVENTS.PING, (detail) => {
@@ -257,7 +257,7 @@ The event bus in `@mfe/shared/events` uses pure native DOM `CustomEvent` dispatc
 
 * **Listening in React**:
   ```javascript
-  import { useMfeEventListener, MFE_EVENTS } from "@mfe/shared/adapters";
+  import { useMfeEventListener, MFE_EVENTS } from "@subrataroy100/mfe-shared/adapters";
 
   useMfeEventListener(MFE_EVENTS.PING, (detail) => {
     console.log("Ping received:", detail);

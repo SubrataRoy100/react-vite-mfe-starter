@@ -20,7 +20,7 @@ The primary container application for the Micro-Frontend Monorepo architecture.
    - If a remote fails to load or crashes at runtime, the host shell and navigation remain 100% operational.
 
 3. **Multi-Framework Hosting (`<UniversalRemoteMount>`)**:
-   - Can mount both native React components and non-React remotes (Vue 3, Svelte 5, SolidJS, Vanilla JS) via `@mfe/shared`.
+   - Can mount both native React components and non-React remotes (Vue 3, Svelte 5, SolidJS, Vanilla JS) via `@subrataroy100/mfe-shared`.
 
 4. **Cross-MFE Event Bus Monitoring**:
    - Receives events (`mfe:ping`, `mfe:notification`) emitted by remotes and displays them in the live Host Event Feed.

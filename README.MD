@@ -18,7 +18,7 @@ mfe/ (Root Workspace)
 ├── remotes.manifest.json          # Single Source of Truth for all remote micro-frontends
 ├── scripts/                       # Scaled workspace orchestration (orchestrate.js, manifest.js)
 ├── packages/
-│   ├── shared/                   # Internal Workspace Library (@mfe/shared)
+│   ├── shared/                   # Shared Library (@subrataroy100/mfe-shared)
 │   │   ├── src/
 │   │   │   ├── components/       # Shared UI primitives (Button)
 │   │   │   ├── events/           # Decoupled Cross-MFE Event Bus (mfe-events.js)
@@ -220,13 +220,13 @@ Adding a new micro-frontend is completely decoupled and automated through `remot
 2. **Install Dependencies**:
    Add React, Vite, and `@originjs/vite-plugin-federation`:
    ```bash
-   pnpm --filter myService add react react-dom react-router @mfe/shared
+   pnpm --filter myService add react react-dom react-router @subrataroy100/mfe-shared
    pnpm --filter myService add -D vite @vitejs/plugin-react @originjs/vite-plugin-federation @tailwindcss/vite tailwindcss
    ```
 3. **Configure Federation (`defineRemoteConfig`)**:
-   In `packages/myService/vite.config.js`, use the centralized preset from `@mfe/shared/vite`:
+   In `packages/myService/vite.config.js`, use the centralized preset from `@subrataroy100/mfe-shared/vite`:
    ```javascript
-   import { defineRemoteConfig } from "@mfe/shared/vite";
+   import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
 
    export default defineRemoteConfig({
      name: "myService",

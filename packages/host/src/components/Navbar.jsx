@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router";
-import { MFE_EVENTS } from "@mfe/shared";
-import { useMfeEventListener } from "@mfe/shared/adapters";
+import { MFE_EVENTS } from "@subrataroy100/mfe-shared";
+import { useMfeEventListener } from "@subrataroy100/mfe-shared/adapters";
 
 export default function Navbar() {
   const location = useLocation();
