@@ -198,8 +198,8 @@ export default defineConfig({
       remotes: {
         cartRemote: 'http://localhost:5001/assets/remoteEntry.js',
       },
-      // Ensures Host and Remotes share identical React 19 instances:
-      shared: DEFAULT_SHARED_DEPS.react,
+      // Ensures Host and Remotes share identical React 19 singletons:
+      shared: DEFAULT_SHARED_DEPS,
     }),
   ],
   server: {
@@ -226,10 +226,10 @@ const commerceBus = createMfeEventBus({
 export default function HostApp() {
   const [cartCount, setCartCount] = useState(0);
 
-  // Listen to events emitted by the cart remote
-  commerceBus.useListener('cart:updated', (event) => {
-    console.log('Received cart update from:', event.detail.sender);
-    setCartCount(event.detail.data.count);
+  // Listen to events emitted by the cart remote (receives event detail directly)
+  commerceBus.useListener('cart:updated', (detail) => {
+    console.log('Received cart update from:', detail.sender);
+    setCartCount(detail.count);
   });
 
   return (
@@ -288,22 +288,23 @@ const bus = createMfeEventBus({
 bus.send('order:placed', { orderId: 'ord-9921', total: 159.00 });
 ```
 
-The dispatched event payload on `window` includes full telemetry:
+The dispatched event payload on `window` includes full telemetry stamped onto `detail`:
 ```json
 {
+  "orderId": "ord-9921",
+  "total": 159.00,
   "sender": "checkout-remote",
   "namespace": "team-payments",
-  "timestamp": 1726543200000,
-  "data": { "orderId": "ord-9921", "total": 159.00 }
+  "timestamp": 1726543200000
 }
 ```
 
 ### Receiving Events in React
-Use `bus.useListener(eventName, handler, deps)`:
+Use `bus.useListener(eventName, handler)`:
 ```jsx
-bus.useListener('order:placed', (event) => {
-  console.log('Order placed by:', event.detail.sender);
-  console.log('Order data:', event.detail.data);
+bus.useListener('order:placed', (detail) => {
+  console.log('Order placed by:', detail.sender);
+  console.log('Order total:', detail.total);
 });
 // When component unmounts, the event listener is removed automatically!
 ```
@@ -314,8 +315,8 @@ If a remote is written in Vue, Svelte, or Vanilla JS and doesn't want React depe
 import { createMfeEventBus } from '@subrataroy100/mfe-shared/events/core';
 
 const bus = createMfeEventBus({ sender: 'vanilla-widget', namespace: 'team-analytics' });
-const unsubscribe = bus.listen('analytics:click', (event) => {
-  console.log(event.detail.data);
+const unsubscribe = bus.listen('analytics:click', (detail) => {
+  console.log('Clicked:', detail);
 });
 
 // Call when destroying the widget

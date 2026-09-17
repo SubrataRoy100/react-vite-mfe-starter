@@ -223,8 +223,8 @@ const bus = createMfeEventBus({ sender: "cart-remote", namespace: "team-commerce
 bus.send("cart:updated", { count: 3 });
 
 // Subscribe in React with automatic lifecycle cleanup
-bus.useListener("cart:updated", (event) => {
-  console.log("Cart count:", event.detail.data.count);
+bus.useListener("cart:updated", (detail) => {
+  console.log("Cart count:", detail.count);
 });
 ```
 
