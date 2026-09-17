@@ -55,17 +55,33 @@ export const config = {
 
 ---
 
-### B. Vercel Edge Middleware (Recommended for Vercel)
+### B. Vercel Edge Middleware (Standard Web APIs)
 
-Create `middleware.ts`:
+Create `middleware.js` (or `api/config.js`):
 
-```typescript
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+```javascript
+export default async function middleware(request) {
+  // Fetch upstream static HTML and dynamically inject runtime configuration
+  const response = await fetch(request);
+  const contentType = response.headers.get("content-type") || "";
 
-export function middleware(request: NextRequest) {
-  const response = NextResponse.next();
-  // Provide runtime config headers or use Edge HTML rewriting
+  if (contentType.includes("text/html")) {
+    const html = await response.text();
+    const runtimeConfig = {
+      demoService: process.env.REMOTE_DEMO_SERVICE_URL || "https://demo.example.com/remoteEntry.js",
+    };
+
+    const injected = html.replace(
+      "<head>",
+      `<head><script>window.__MFE_RUNTIME_CONFIG__ = ${JSON.stringify(runtimeConfig)};</script>`
+    );
+
+    return new Response(injected, {
+      status: response.status,
+      headers: response.headers,
+    });
+  }
+
   return response;
 }
 ```

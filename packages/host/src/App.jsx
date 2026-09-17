@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import RetriableRemote from "./components/RetriableRemote";
 
 const LandingPage = React.lazy(() => import("./pages/LandingPage"));
+const loadDemoServiceApp = () => import("demoService/App");
 
 function App() {
   return (
@@ -28,8 +29,9 @@ function App() {
             path="/demo/*"
             element={
               <RetriableRemote
-                loader={() => import("demoService/App")}
+                loader={loadDemoServiceApp}
                 remoteName="Demo Service Module"
+                serviceName="demoService"
                 fallbackMessage="Streaming Demo Service Micro-Frontend..."
               />
             }

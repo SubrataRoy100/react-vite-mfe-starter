@@ -4,6 +4,8 @@ import RetriableRemote from "../components/RetriableRemote";
 import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
 import { useMfeEventListener } from "@mfe/shared/adapters";
 
+const loadDevWidget = () => import("demoService/MfeDevWidget");
+
 function LandingPage() {
   const [eventsFeed, setEventsFeed] = useState([
     {
@@ -245,8 +247,9 @@ function LandingPage() {
             {/* Embedded Federated Remote Widget */}
             <div className="lg:col-span-2">
               <RetriableRemote
-                loader={() => import("demoService/MfeDevWidget")}
+                loader={loadDevWidget}
                 remoteName="Federated Dev Widget"
+                serviceName="demoService"
                 fallbackMessage="Loading federated widget from remote..."
                 title="Remote Widget Federated into Host Shell"
               />

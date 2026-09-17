@@ -40,7 +40,7 @@ export function UniversalRemoteMount({
   const [error, setError] = useState(null);
   const [internalRetry, setInternalRetry] = useState(0);
 
-  const stableKey = remoteKey || remoteName;
+  const stableKey = remoteKey != null && remoteKey !== "" ? remoteKey : remoteName;
 
   // Load the remote module asynchronously (stable against inline function recreation)
   useEffect(() => {

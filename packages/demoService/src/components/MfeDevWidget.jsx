@@ -15,13 +15,15 @@ export default function MfeDevWidget({ title = "MFE Dev Testing & Diagnostics" }
   const [lastMessage, setLastMessage] = useState(null);
   const [shouldCrash, setShouldCrash] = useState(false);
 
-  // Listen for responses or notifications from other MFEs
+  // Listen for responses or notifications from other MFEs (ignore self-broadcasts)
   useMfeEventListener(MFE_EVENTS.PONG, (detail) => {
-    setLastMessage(`Received PONG from ${detail.sender} at ${new Date(detail.timestamp).toLocaleTimeString()}`);
+    if (detail?.sender === "MfeDevWidget") return;
+    setLastMessage(`Received PONG from ${detail?.sender || "Host"} at ${new Date(detail?.timestamp || Date.now()).toLocaleTimeString()}`);
   });
 
   useMfeEventListener(MFE_EVENTS.PING, (detail) => {
-    setLastMessage(`Received PING from ${detail.sender} (${detail.count || 1})`);
+    if (detail?.sender === "MfeDevWidget") return;
+    setLastMessage(`Received PING from ${detail?.sender || "External"} (${detail?.count || 1})`);
   });
 
   // Intentional crash simulator for testing ErrorBoundary
@@ -35,6 +37,7 @@ export default function MfeDevWidget({ title = "MFE Dev Testing & Diagnostics" }
     sendMfeEvent(MFE_EVENTS.PING, {
       message: "Hello from MfeDevWidget!",
       count: nextCount,
+      sender: "MfeDevWidget",
     });
   };
 

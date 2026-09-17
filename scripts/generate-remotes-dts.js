@@ -74,7 +74,7 @@ export function generateRemotesDts() {
         declarations.push(
           `declare module "${moduleSpecifier}" {`,
           `  export function mount(container: HTMLElement, props?: Record<string, any>): (() => void) | void;`,
-          `  export function unmount?(container: HTMLElement): void;`,
+          `  export const unmount: ((container: HTMLElement) => void) | undefined;`,
           `}`,
           ""
         );

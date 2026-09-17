@@ -136,4 +136,31 @@ describe("defineRemoteConfig", () => {
     const resolved = configFn({ mode: "development", command: "serve" });
     expect(resolved.server.port).toBe(5001);
   });
+
+  it("preserves unhashed remoteEntry.js naming even when user supplies custom build.rollupOptions", () => {
+    const configFn = defineRemoteConfig({
+      name: "demoService",
+      build: {
+        sourcemap: true,
+        rollupOptions: {
+          external: ["lodash"],
+          output: {
+            format: "esm",
+            entryFileNames: "custom/[name].js",
+          },
+        },
+      },
+    });
+
+    const resolved = configFn({ mode: "production", command: "build" });
+    expect(resolved.build.sourcemap).toBe(true);
+    expect(resolved.build.rollupOptions.external).toEqual(["lodash"]);
+    expect(resolved.build.rollupOptions.output.format).toBe("esm");
+
+    // remoteEntry chunk must ALWAYS be [name].js at root
+    const entryFn = resolved.build.rollupOptions.output.entryFileNames;
+    expect(entryFn({ name: "remoteEntry" })).toBe("[name].js");
+    // Non-remoteEntry chunks should use the custom naming or default
+    expect(entryFn({ name: "main" })).toBe("custom/[name].js");
+  });
 });

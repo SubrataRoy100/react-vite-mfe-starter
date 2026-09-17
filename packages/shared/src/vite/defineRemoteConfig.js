@@ -153,6 +153,30 @@ export function defineRemoteConfig(optionsOrFn) {
       frameworkPlugins.push(react(reactOptions));
     }
 
+    const { rollupOptions: userRollupOptions = {}, ...userBuild } = build;
+    const { output: userOutput = {}, ...userRollupRest } = userRollupOptions;
+
+    const baseOutput = {
+      entryFileNames: (chunkInfo) => {
+        if (chunkInfo?.name?.includes("remoteEntry")) {
+          return "[name].js";
+        }
+        if (typeof userOutput.entryFileNames === "function") {
+          return userOutput.entryFileNames(chunkInfo);
+        }
+        if (typeof userOutput.entryFileNames === "string") {
+          return userOutput.entryFileNames;
+        }
+        return "assets/[name]-[hash].js";
+      },
+      chunkFileNames: userOutput.chunkFileNames || "assets/[name]-[hash].js",
+      assetFileNames: userOutput.assetFileNames || "assets/[name]-[hash][extname]",
+    };
+
+    const mergedOutput = Array.isArray(userOutput)
+      ? userOutput.map((out) => ({ ...out, ...baseOutput }))
+      : { ...userOutput, ...baseOutput };
+
     const config = {
       plugins: [
         ...frameworkPlugins,
@@ -189,19 +213,11 @@ export function defineRemoteConfig(optionsOrFn) {
         minify: env.mode === "production",
         cssCodeSplit: false,
         assetsDir: "",
+        ...userBuild,
         rollupOptions: {
-          output: {
-            entryFileNames: (chunkInfo) =>
-              chunkInfo.name.includes("remoteEntry")
-                ? "[name].js"
-                : "assets/[name]-[hash].js",
-            chunkFileNames: "assets/[name]-[hash].js",
-            assetFileNames: "assets/[name]-[hash][extname]",
-            ...(build.rollupOptions?.output),
-          },
-          ...(build.rollupOptions),
+          ...userRollupRest,
+          output: mergedOutput,
         },
-        ...build,
       },
       ...restConfig,
     };

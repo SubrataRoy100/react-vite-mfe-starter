@@ -95,6 +95,18 @@ export const PRODUCTS = [
     icon: "📊",
     description: "Distributed tracing across micro-frontends, core web vitals observability, automated anomaly alerts.",
   },
+  {
+    id: "prod-9",
+    name: "CyberDeck Portable Terminal (Limited Edition)",
+    category: "Hardware",
+    price: 499,
+    rating: 4.9,
+    reviews: 51,
+    stock: 0,
+    badge: "Out of Stock",
+    icon: "📟",
+    description: "Ruggedized portable dev terminal with mechanical ortholinear keyboard and integrated 7-inch display.",
+  },
 ];
 
 export const CATEGORIES = ["All", "Hardware", "Cloud Services", "Developer Tools"];

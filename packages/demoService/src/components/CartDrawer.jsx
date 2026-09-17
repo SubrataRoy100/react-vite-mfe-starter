@@ -40,7 +40,8 @@ export default function CartDrawer() {
       sender: "CloudStore Remote",
     });
 
-    clearCart();
+    // Pass silent true so order confirmation is not accompanied by a redundant "Cart cleared" toast
+    clearCart(true);
   }
 
   function handleClose() {

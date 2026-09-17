@@ -21,13 +21,14 @@ export function StoreProvider({ children }) {
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Sync initial cart count across the monorepo event bus
+  // Sync initial cart count across the monorepo event bus on mount
+  const initialCartCountRef = useRef(totalCartCount);
   useEffect(() => {
     sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
-      count: totalCartCount,
+      count: initialCartCountRef.current,
       sender: "CloudStore Remote",
     });
-  }, [totalCartCount]);
+  }, []); // Run once on mount to avoid double-firing CART_UPDATE on user mutations
 
   // Cleanup toast timer on unmount
   useEffect(() => {
@@ -38,7 +39,7 @@ export function StoreProvider({ children }) {
     };
   }, []);
 
-  function showToast(msg) {
+  const showToast = useCallback((msg) => {
     setToastMessage(msg);
     if (toastTimerRef.current) {
       clearTimeout(toastTimerRef.current);
@@ -47,43 +48,46 @@ export function StoreProvider({ children }) {
       setToastMessage(null);
       toastTimerRef.current = null;
     }, 3000);
-  }
+  }, []);
 
-  function addToCart(product) {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      let newCart;
-      if (existing) {
-        newCart = prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        newCart = [...prev, { product, quantity: 1 }];
-      }
+  const addToCart = useCallback(
+    (product) => {
+      setCart((prev) => {
+        const existing = prev.find((item) => item.product.id === product.id);
+        let newCart;
+        if (existing) {
+          newCart = prev.map((item) =>
+            item.product.id === product.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          );
+        } else {
+          newCart = [...prev, { product, quantity: 1 }];
+        }
 
-      const newTotal = newCart.reduce((sum, i) => sum + i.quantity, 0);
+        const newTotal = newCart.reduce((sum, i) => sum + i.quantity, 0);
 
-      // Notify the Host Shell and other remotes over the Cross-MFE Event Bus!
-      sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
-        count: newTotal,
-        sender: "CloudStore Remote",
-        product: product.name,
+        // Notify the Host Shell and other remotes over the Cross-MFE Event Bus!
+        sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
+          count: newTotal,
+          sender: "CloudStore Remote",
+          product: product.name,
+        });
+
+        sendMfeEvent(MFE_EVENTS.NOTIFICATION, {
+          message: `Added "${product.name}" to cart (Total: ${newTotal} items)`,
+          sender: "CloudStore Remote",
+        });
+
+        return newCart;
       });
 
-      sendMfeEvent(MFE_EVENTS.NOTIFICATION, {
-        message: `Added "${product.name}" to cart (Total: ${newTotal} items)`,
-        sender: "CloudStore Remote",
-      });
+      showToast(`Added ${product.name} to cart!`);
+    },
+    [showToast]
+  );
 
-      return newCart;
-    });
-
-    showToast(`Added ${product.name} to cart!`);
-  }
-
-  function removeFromCart(productId) {
+  const removeFromCart = useCallback((productId) => {
     setCart((prev) => {
       const target = prev.find((item) => item.product.id === productId);
       const newCart = prev.filter((item) => item.product.id !== productId);
@@ -103,9 +107,9 @@ export function StoreProvider({ children }) {
 
       return newCart;
     });
-  }
+  }, []);
 
-  function updateQuantity(productId, delta) {
+  const updateQuantity = useCallback((productId, delta) => {
     setCart((prev) => {
       const newCart = prev
         .map((item) => {
@@ -125,20 +129,25 @@ export function StoreProvider({ children }) {
 
       return newCart;
     });
-  }
+  }, []);
 
-  function clearCart() {
-    setCart([]);
-    sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
-      count: 0,
-      sender: "CloudStore Remote",
-    });
-    sendMfeEvent(MFE_EVENTS.NOTIFICATION, {
-      message: "Cart cleared",
-      sender: "CloudStore Remote",
-    });
-    showToast("Cart has been cleared");
-  }
+  const clearCart = useCallback(
+    (silent = false) => {
+      setCart([]);
+      sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
+        count: 0,
+        sender: "CloudStore Remote",
+      });
+      if (!silent) {
+        sendMfeEvent(MFE_EVENTS.NOTIFICATION, {
+          message: "Cart cleared",
+          sender: "CloudStore Remote",
+        });
+        showToast("Cart has been cleared");
+      }
+    },
+    [showToast]
+  );
 
   const formatPrice = useCallback(
     (usdAmount) => {
@@ -187,6 +196,10 @@ export function StoreProvider({ children }) {
       products,
       cart,
       totalCartCount,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
       currency,
       showOutOfStock,
       isCartOpen,

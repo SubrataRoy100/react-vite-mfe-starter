@@ -5,7 +5,13 @@ import { ErrorBoundary } from "react-error-boundary";
  * Fallback card rendered when a federated remote module fails to load or crashes.
  * Prevents the host shell container from crashing.
  */
-function RemoteErrorFallback({ error, resetErrorBoundary, remoteName = "Remote Service" }) {
+function RemoteErrorFallback({ error, resetErrorBoundary, remoteName = "Remote Service", serviceName }) {
+  const devTarget =
+    serviceName ||
+    (remoteName === "Demo Service Module" || remoteName === "MfeDevWidget" || remoteName === "Demo Service"
+      ? "demoService"
+      : remoteName.toLowerCase().replace(/\s+/g, ""));
+
   return (
     <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-6 text-slate-800 shadow-sm my-4">
       <div className="flex items-start gap-3">
@@ -35,13 +41,13 @@ function RemoteErrorFallback({ error, resetErrorBoundary, remoteName = "Remote S
             <button
               type="button"
               onClick={resetErrorBoundary}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition active:scale-95 cursor-pointer"
             >
               <span>🔄</span>
               <span>Retry Component</span>
             </button>
             <span className="text-[11px] text-slate-500">
-              Ensure the remote dev server is running, or boot via <code className="px-1 py-0.5 rounded bg-rose-100 text-rose-800 font-mono text-[10px]">pnpm dev</code> / <code className="px-1 py-0.5 rounded bg-rose-100 text-rose-800 font-mono text-[10px]">pnpm dev:only {remoteName.toLowerCase().replace(/\s+/g, '')}</code>.
+              Ensure the remote dev server is running, or boot via <code className="px-1 py-0.5 rounded bg-rose-100 text-rose-800 font-mono text-[10px]">pnpm dev</code> / <code className="px-1 py-0.5 rounded bg-rose-100 text-rose-800 font-mono text-[10px]">pnpm dev:only {devTarget}</code>.
             </span>
           </div>
         </div>
@@ -50,10 +56,12 @@ function RemoteErrorFallback({ error, resetErrorBoundary, remoteName = "Remote S
   );
 }
 
-export default function RemoteErrorBoundary({ children, remoteName = "Remote Service", onReset }) {
+export default function RemoteErrorBoundary({ children, remoteName = "Remote Service", serviceName, onReset }) {
   return (
     <ErrorBoundary
-      FallbackComponent={(props) => <RemoteErrorFallback {...props} remoteName={remoteName} />}
+      fallbackRender={(props) => (
+        <RemoteErrorFallback {...props} remoteName={remoteName} serviceName={serviceName} />
+      )}
       onReset={onReset}
     >
       {children}

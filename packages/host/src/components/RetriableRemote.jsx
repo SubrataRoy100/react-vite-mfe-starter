@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import RemoteErrorBoundary from "./RemoteErrorBoundary";
 import LoadingFallback from "./LoadingFallback";
 
@@ -10,6 +10,11 @@ function RemoteLoader({ loader, retryKey, fallback, fallbackMessage, ...restProp
   const [Component, setComponent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const loaderRef = useRef(loader);
+
+  useEffect(() => {
+    loaderRef.current = loader;
+  }, [loader]);
 
   useEffect(() => {
     let isMounted = true;
@@ -17,7 +22,7 @@ function RemoteLoader({ loader, retryKey, fallback, fallbackMessage, ...restProp
     setLoading(true);
     setError(null);
 
-    loader()
+    loaderRef.current()
       .then((mod) => {
         if (!isMounted) return;
         setComponent(() => (mod && mod.default ? mod.default : mod));
@@ -33,7 +38,7 @@ function RemoteLoader({ loader, retryKey, fallback, fallbackMessage, ...restProp
     return () => {
       isMounted = false;
     };
-  }, [loader, retryKey]);
+  }, [retryKey]);
 
   if (error) {
     throw error;
@@ -53,12 +58,14 @@ function RemoteLoader({ loader, retryKey, fallback, fallbackMessage, ...restProp
  * @param {object} props
  * @param {() => Promise<{ default: React.ComponentType<any> }>} props.loader Dynamic import function for the remote
  * @param {string} [props.remoteName] Display name of the remote service
+ * @param {string} [props.serviceName] Exact manifest service key for dev-server CLI hints
  * @param {string} [props.fallbackMessage] Message for default LoadingFallback
  * @param {React.ReactNode} [props.fallback] Custom loading fallback element
  */
 export default function RetriableRemote({
   loader,
   remoteName = "Remote Module",
+  serviceName,
   fallbackMessage = `Loading ${remoteName}...`,
   fallback,
   ...restProps
@@ -68,6 +75,7 @@ export default function RetriableRemote({
   return (
     <RemoteErrorBoundary
       remoteName={remoteName}
+      serviceName={serviceName}
       onReset={() => setRetryKey((k) => k + 1)}
     >
       <RemoteLoader

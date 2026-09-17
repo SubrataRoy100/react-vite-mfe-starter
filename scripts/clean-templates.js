@@ -38,7 +38,8 @@ export default App;
 `;
 
 export const CLEAN_HOST_LANDING_PAGE = `import React, { useState } from "react";
-import { useMfeEventListener, sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
+import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
+import { useMfeEventListener } from "@mfe/shared/adapters";
 
 function LandingPage() {
   const [eventsFeed, setEventsFeed] = useState([]);
