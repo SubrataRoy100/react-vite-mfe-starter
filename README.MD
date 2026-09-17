@@ -5,6 +5,7 @@ A modern, production-ready starter project framework for **Micro-Frontends (MFE)
 Designed to split monolithic web applications into decoupled, independently deployable frontend packages while maintaining a unified developer experience.
 
 > 📚 **Comprehensive Internal Specification**: For an in-depth breakdown of module federation internals, singletons, routing mechanics, event bus lifecycle, and production architecture, see the **[Version 1.0.0 Technical Documentation](docs/v1.0.0_DOCUMENTATION.md)**.
+> 📦 **Standalone npm Library Guide**: To use the published library (`npm i @subrataroy100/mfe-shared`) in any new or existing project, see the **[In-Depth Getting Started Guide](docs/NPM_GETTING_STARTED.md)**.
 > 🌐 **Multi-Framework Guide**: To build and integrate micro-frontends with **Vue 3**, **Svelte 5**, **SolidJS**, or **Vanilla JS**, see the **[Multi-Framework Architecture Guide](docs/MULTI_FRAMEWORK_GUIDE.md)**.
 
 ---

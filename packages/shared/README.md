@@ -9,6 +9,8 @@ Designed for production Micro-Frontend architectures powered by Vite and Module 
 
 ---
 
+> 📖 **Full Step-by-Step Tutorial**: For an end-to-end walkthrough on building a Host and Remote with Vite from scratch, check out the **[In-Depth Getting Started Guide](../../docs/NPM_GETTING_STARTED.md)**.
+
 ## 📦 Installation
 
 Install directly from npm:
