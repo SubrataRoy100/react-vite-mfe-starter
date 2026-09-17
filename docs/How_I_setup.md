@@ -227,57 +227,31 @@ The Remote application (port `5001`) operates both as an independent standalone 
 Exposes both the root sub-application (`./App`) and standalone micro-widgets (`./MfeDevWidget`) with `federation-css-fix`:
 ```javascript
 import federation from "@originjs/vite-plugin-federation";
-import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
-import tailwindcss from "@tailwindcss/vite";
+import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
 
-export default defineConfig(({ mode }) => ({
-  plugins: [
-    react(),
-    tailwindcss(),
-    federation({
-      name: "demoService",
-      filename: "remoteEntry.js",
-      exposes: {
-        "./App": "./src/App.jsx",
-        "./MfeDevWidget": "./src/components/MfeDevWidget.jsx",
-      },
-      shared: {
-        react: { singleton: true, requiredVersion: "^19.0.0" },
-        "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
-        "react-router": { singleton: true, requiredVersion: "^8.0.0" },
-      },
-    }),
-    {
-      name: "federation-css-fix",
-      enforce: "post",
-      generateBundle(options, bundle) {
-        const entryKey = Object.keys(bundle).find((key) => key.endsWith("remoteEntry.js"));
-        if (!entryKey || !bundle[entryKey]?.code) return;
-        const cssFiles = Object.keys(bundle).filter((name) => name.endsWith(".css")).map((name) => name.split("/").pop());
-        bundle[entryKey].code = bundle[entryKey].code.replace(/(["'`])__v__css__.*?\1/g, JSON.stringify(cssFiles));
-      },
-    },
-  ],
-  server: {
-    port: 5001,
-    strictPort: true,
+export default defineRemoteConfig({
+  name: "demoService",
+  // Port is auto-inferred from remotes.manifest.json (port 5001)
+  // but can also be set explicitly: port: 5001
+  exposes: {
+    "./App": "./src/App.jsx",
+    "./MfeDevWidget": "./src/components/MfeDevWidget.jsx",
   },
-  preview: {
-    port: 5001,
-    strictPort: true,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-    },
-  },
-  build: {
-    modulePreload: false,
-    target: "esnext",
-    minify: mode === "production",
-    cssCodeSplit: false,
-  },
-}));
+  // Optional extras:
+  // shared: { zustand: { singleton: true } },  // extra singletons merged on top of react defaults
+  // plugins: [],                                 // additional Vite plugins
+  // extend: (config, env) => config,             // escape-hatch for advanced overrides
+});
 ```
+
+> **Note**: `defineRemoteConfig` automatically handles:
+> - React 19 singleton deps (`react`, `react-dom`, `react-router`)
+> - Tailwind CSS v4 (`@tailwindcss/vite`)
+> - `federationCssFixPlugin` (auto-injects remote CSS `<link>` tags into `document.head`)
+> - Port inference from `remotes.manifest.json`
+> - CORS headers on the preview server
+>
+> The old manual vite.config shown above is no longer needed when using the preset.
 
 ### 4.2 Autonomous Relative Routing Rule
 Never hardcode parent URLs inside remote components. Define routes and links relatively:
@@ -301,33 +275,66 @@ When embedded at `http://localhost:5000/demo/*`, it navigates to `/demo/settings
 
 Both applications import decoupled event utilities from `@subrataroy100/mfe-shared`:
 
+#### Global helpers (unscoped, for simple use cases):
 ```javascript
-export const MFE_EVENTS = {
-  PING: "mfe:ping",
-  PONG: "mfe:pong",
-};
+import { sendMfeEvent, listenMfeEvent, useMfeEventListener, MFE_EVENTS } from '@subrataroy100/mfe-shared/events';
 
-export function sendMfeEvent(eventName, payload = {}) {
-  const event = new CustomEvent(eventName, {
-    detail: {
-      ...payload,
-      timestamp: Date.now(),
-      sender: window.__IS_HOST__ ? "Host Shell (Port 5000)" : "Demo Remote (Port 5001)",
-    },
+// Dispatch from any MFE:
+sendMfeEvent(MFE_EVENTS.PING, { count: 1 });
+// MFE_EVENTS.PING = 'mfe:ping', PONG = 'mfe:pong', NOTIFICATION = 'mfe:notification',
+// NAVIGATION = 'mfe:navigation', CART_UPDATE = 'mfe:cart_update', ORDER_PLACED = 'mfe:order_placed'
+
+// React Hook (auto-cleanup on unmount, stable against re-renders):
+function HostShell() {
+  useMfeEventListener(MFE_EVENTS.PING, (detail) => {
+    console.log('Sender:', detail.sender);        // e.g. 'Demo Remote (Port 5001)'
+    console.log('Timestamp:', detail.timestamp);
+    // Reply:
+    sendMfeEvent(MFE_EVENTS.PONG, { message: 'received!' });
   });
-  window.dispatchEvent(event);
 }
 
-export function useMfeEventListener(eventName, handler) {
-  useEffect(() => {
-    const listener = (event) => {
-      if (event instanceof CustomEvent && handler) handler(event.detail);
-    };
-    window.addEventListener(eventName, listener);
-    return () => window.removeEventListener(eventName, listener);
-  }, [eventName, handler]);
-}
+// Imperative (any framework, returns unsubscribe fn):
+const unsubscribe = listenMfeEvent(MFE_EVENTS.PING, (detail) => console.log(detail));
+unsubscribe(); // cleanup when done
 ```
+
+#### Scoped Event Bus (recommended for teams / multiple remotes):
+
+Prevents event name collisions when multiple remotes run in the same window:
+```javascript
+import { createMfeEventBus } from '@subrataroy100/mfe-shared/events';
+
+// Each remote creates its own scoped bus:
+const bus = createMfeEventBus({
+  sender: 'demo-remote',     // identifies the emitting service
+  namespace: 'demo',         // optional prefix (e.g. 'item:added' → 'demo:item:added')
+});
+
+// Send (with namespace prefix):
+bus.send('item:added', { id: 'p1', name: 'Laptop', price: 1200 });
+
+// React hook (auto-cleanup):
+bus.useListener('item:added', (detail) => {
+  console.log(detail.sender);    // 'demo-remote'
+  console.log(detail.namespace); // 'demo'
+});
+
+// Imperative:
+const unsubscribe = bus.listen('item:added', (detail) => console.log(detail));
+unsubscribe();
+```
+
+#### For non-React remotes (Vue, Svelte, Vanilla):
+```javascript
+// Use /events/core — zero React dependency, same API minus useListener:
+import { createMfeEventBus } from '@subrataroy100/mfe-shared/events/core';
+const bus = createMfeEventBus({ sender: 'vue-remote', namespace: 'team-vue' });
+bus.send('search:query', { term: 'hello' });
+const unsub = bus.listen('cart:updated', (detail) => console.log(detail));
+```
+
+
 
 ---
 
