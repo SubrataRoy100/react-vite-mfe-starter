@@ -125,6 +125,7 @@ import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
 
 export default defineRemoteConfig({
   name: "productService",
+  framework: "react",          // Configures React 19 singletons automatically
   // Port is auto-inferred from remotes.manifest.json (port 5001)
   exposes: {
     // Expose full sub-application
@@ -132,11 +133,32 @@ export default defineRemoteConfig({
     // Expose reusable standalone widget
     "./ProductCard": "./src/components/ProductCard.jsx",
   },
+  // Merge extra singleton deps on top of the React baseline
+  shared: {
+    "react-query": { singleton: true },
+  },
 });
 ```
 
 > [!TIP]
-> `defineRemoteConfig` automatically configures React 19 singletons, Tailwind CSS v4, the `federation-css-fix` plugin, and strict preview ports with CORS headers.
+> `defineRemoteConfig` automatically configures React 19 singletons (`react`, `react-dom`, `react-router`), Tailwind CSS v4, the `federation-css-fix` plugin, and strict preview ports with CORS headers. The `shared` field is merged on top of the framework baseline — you only need to list **additional** dependencies.
+
+### 1.3 Expose Your Root Component with `createReactMount`
+
+To make your remote consumable by **non-React** hosts (Vue, Svelte, Vanilla JS) or by `UniversalRemoteMount` in Shadow DOM mode, wrap your root component with `createReactMount` before exporting:
+
+```jsx
+// packages/productService/src/App.jsx
+import { createReactMount } from "@subrataroy100/mfe-shared/adapters";
+import ProductApp from "./ProductApp.jsx";
+
+// The returned value is both a React functional component (usable in JSX)
+// AND a universal mount object { mount(container, props), unmount() }
+export default createReactMount(ProductApp);
+```
+
+> [!NOTE]
+> `createReactMount` returns a **dual-mode** function: it behaves like a normal React component when used in JSX, and also provides a `.mount(container, props)` / `.unmount()` lifecycle for framework-agnostic hosts. This is the standard export contract for all remotes in this monorepo.
 
 
 ---
@@ -192,18 +214,14 @@ export default defineConfig(({ mode }) => ({
 
 ### 2.2 Host Shell Routing (`packages/host/src/App.jsx`)
 
-The Host Router delegates nested path control to each remote using wildcard paths (`/*`):
+The Host Router delegates nested path control to each remote using wildcard paths (`/*`). The recommended approach uses `UniversalRemoteMount` from `@subrataroy100/mfe-shared/adapters`, which handles loading state, error recovery, Shadow DOM isolation, and cross-framework remotes all in one component:
 
 ```jsx
-import React, { Suspense, lazy } from "react";
+import React, { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router";
-import RemoteErrorBoundary from "./components/RemoteErrorBoundary";
+import { UniversalRemoteMount } from "@subrataroy100/mfe-shared/adapters";
 import LoadingFallback from "./components/LoadingFallback";
 
-// Lazily pull remotes over the network
-const ProductServiceApp = lazy(() => import("productService/App"));
-const OrderServiceApp = lazy(() => import("orderService/App"));
-const InventoryServiceApp = lazy(() => import("inventoryService/App"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 
 export default function App() {
@@ -222,33 +240,39 @@ export default function App() {
       <Route
         path="/products/*"
         element={
-          <RemoteErrorBoundary remoteName="Product Catalog">
-            <Suspense fallback={<LoadingFallback message="Streaming Product Service..." />}>
-              <ProductServiceApp />
-            </Suspense>
-          </RemoteErrorBoundary>
+          <UniversalRemoteMount
+            module={() => import("productService/App")}
+            remoteName="Product Catalog"
+            fallback={<LoadingFallback message="Streaming Product Service..." />}
+            errorFallback={(err, retry) => (
+              <div className="p-4 text-red-400">
+                Failed: {err.message}
+                <button onClick={retry}>Retry</button>
+              </div>
+            )}
+          />
         }
       />
 
       <Route
         path="/orders/*"
         element={
-          <RemoteErrorBoundary remoteName="Order & Checkout Service">
-            <Suspense fallback={<LoadingFallback message="Loading Orders..." />}>
-              <OrderServiceApp />
-            </Suspense>
-          </RemoteErrorBoundary>
+          <UniversalRemoteMount
+            module={() => import("orderService/App")}
+            remoteName="Order & Checkout Service"
+            fallback={<LoadingFallback message="Loading Orders..." />}
+          />
         }
       />
 
       <Route
         path="/inventory/*"
         element={
-          <RemoteErrorBoundary remoteName="Inventory Service">
-            <Suspense fallback={<LoadingFallback message="Loading Inventory..." />}>
-              <InventoryServiceApp />
-            </Suspense>
-          </RemoteErrorBoundary>
+          <UniversalRemoteMount
+            module={() => import("inventoryService/App")}
+            remoteName="Inventory Service"
+            fallback={<LoadingFallback message="Loading Inventory..." />}
+          />
         }
       />
     </Routes>
@@ -256,7 +280,38 @@ export default function App() {
 }
 ```
 
-### 2.3 Autonomous Relative Routing Contract (`packages/productService/src/App.jsx`)
+> [!TIP]
+> `UniversalRemoteMount` accepts the `module` prop as a **function returning a dynamic import** — `module={() => import('productService/App')}`. This keeps the import lazy and retriable. You can also pass a `retryKey` prop (increment it externally) for parent-controlled reloads.
+
+### 2.3 `UniversalRemoteMount` — Full API Reference
+
+| Prop | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `module` | `() => Promise<any>` | — | **Required.** Function returning the dynamic `import()` of the remote. |
+| `props` | `object` | `{}` | Props forwarded to the mounted remote component. |
+| `fallback` | `ReactNode` | built-in spinner | Displayed while the remote is loading. |
+| `errorFallback` | `(err, retry) => ReactNode` | built-in error card | Custom error UI. Receives the `Error` and a `retry` callback. |
+| `shadowDom` | `boolean \| ShadowRootInit` | `false` | Wraps the remote in an isolated Shadow DOM to prevent CSS bleed. |
+| `remoteName` | `string` | `"Remote Micro-Frontend"` | Display name used in logs and default error messages. |
+| `retryKey` | `number \| string` | `0` | Increment to trigger a full module reload from the parent. |
+| `remoteKey` | `string` | `remoteName` | Stable key that, when changed, destroys and remounts the remote. |
+| `onError` | `(err: Error) => void` | — | Callback fired when loading or mounting fails. |
+
+**Shadow DOM example** (CSS-isolated Vue or Svelte remote mounted in a React host):
+
+```jsx
+<UniversalRemoteMount
+  module={() => import("inventoryService/App")}
+  props={{ warehouseId: "WH-42" }}
+  shadowDom={{ mode: "open" }}
+  fallback={<div>Loading Inventory...</div>}
+  errorFallback={(err, retry) => (
+    <div>Error: {err.message} <button onClick={retry}>Retry</button></div>
+  )}
+/>
+```
+
+### 2.4 Autonomous Relative Routing Contract (`packages/productService/src/App.jsx`)
 
 To ensure micro-apps can run both **standalone** (`http://localhost:5001/`) and **embedded** (`http://localhost:5000/products/`), remotes must use relative paths:
 
@@ -285,26 +340,64 @@ export default function App() {
 
 ## 5. Hands-On Step 3: Cross-Boundary Communication (Event Bus)
 
-Micro-frontends should never share global state stores (Redux, Zustand) across independent deployments. Doing so introduces tight coupling and memory leaks. Instead, communicate using standard browser `CustomEvents` with our lightweight, lifecycle-safe `@subrataroy100/mfe-shared` library.
+Micro-frontends should never share global state stores (Redux, Zustand) across independent deployments. Doing so introduces tight coupling and memory leaks. Instead, communicate using standard browser `CustomEvents` with our lightweight, lifecycle-safe `@subrataroy100/mfe-shared/events` library.
 
-### 5.1 Emitter: Dispatching Events (`ProductCard.jsx`)
+### 5.0 Built-In Event Name Constants (`MFE_EVENTS`)
+
+The shared library ships a set of pre-defined event name constants to keep event naming consistent across all remotes:
+
+```javascript
+import { MFE_EVENTS } from "@subrataroy100/mfe-shared/events";
+
+// MFE_EVENTS.CART_UPDATE   = 'mfe:cart_update'
+// MFE_EVENTS.ORDER_PLACED  = 'mfe:order_placed'
+// MFE_EVENTS.PING          = 'mfe:ping'
+// MFE_EVENTS.PONG          = 'mfe:pong'
+// MFE_EVENTS.NOTIFICATION  = 'mfe:notification'
+// MFE_EVENTS.NAVIGATION    = 'mfe:navigation'
+```
+
+Use these constants in both senders and listeners to avoid typo-driven bugs across team boundaries.
+
+### 5.1 Scoped Event Bus: `createMfeEventBus`
+
+Both emitters and listeners should use `createMfeEventBus` — a **scoped bus factory** that stamps each event with a `sender` identifier and an optional namespace prefix. This prevents global naming collisions when 10+ remotes run concurrently:
+
+```javascript
+import { createMfeEventBus } from "@subrataroy100/mfe-shared/events";
+
+// Instantiate once per remote module — not inside components
+const bus = createMfeEventBus({
+  sender: "product-service",    // stamped on every outgoing event
+  namespace: "team-commerce",   // prefixed to event names: "team-commerce:cart:item_added"
+});
+```
+
+The bus instance exposes three methods:
+
+| Method | Description |
+| :--- | :--- |
+| `bus.send(eventName, payload)` | Dispatches a `CustomEvent` on `window` with sender + namespace stamped. |
+| `bus.listen(eventName, handler)` | Vanilla JS listener; returns an **unsubscribe** cleanup function. Suitable for any framework. |
+| `bus.useListener(eventName, handler)` | **React hook** version of `listen`. Auto-cleans up on component unmount. |
+
+### 5.2 Emitter: Dispatching Cart Events (`ProductCard.jsx`)
 
 When a user clicks "Add to Cart" inside the `productService` remote:
 
 ```jsx
 import React from "react";
-import { sendMfeEvent } from "@subrataroy100/mfe-shared";
+import { createMfeEventBus } from "@subrataroy100/mfe-shared/events";
+
+// Create a module-scoped bus — no re-creation per render
+const bus = createMfeEventBus({ sender: "product-service", namespace: "team-commerce" });
 
 export default function ProductCard({ product }) {
   const handleAddToCart = () => {
-    sendMfeEvent("cart:item_added", {
-      item: {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-      },
-      quantity: 1,
-      sender: "ProductService",
+    bus.send("cart:item_added", {
+      id: product.id,
+      name: product.name,
+      price: product.price,
     });
   };
 
@@ -325,26 +418,28 @@ export default function ProductCard({ product }) {
 }
 ```
 
-### 5.2 Listener: Auto-Cleanup React Hook (`CartHeaderWidget.jsx`)
+### 5.3 Listener: Auto-Cleanup React Hook (`CartHeaderWidget.jsx`)
 
-The Host Shell and `orderService` listen for cart updates using `useMfeEventListener`, which automatically subscribes on mount and unsubscribes on unmount:
+The Host Shell and `orderService` listen for cart updates using `bus.useListener`, which automatically subscribes on mount and unsubscribes on unmount — no manual `useEffect` required:
 
 ```jsx
 import React, { useState } from "react";
-import { useMfeEventListener } from "@subrataroy100/mfe-shared";
+import { createMfeEventBus } from "@subrataroy100/mfe-shared/events";
+
+const bus = createMfeEventBus({ sender: "host-shell", namespace: "team-commerce" });
 
 export function CartHeaderWidget() {
   const [cartItems, setCartItems] = useState([]);
 
-  // Subscribes safely with automated window event listener cleanup
-  useMfeEventListener("cart:item_added", (detail) => {
-    console.log(`[Cart] Received item from ${detail.sender}:`, detail.item);
-    setCartItems((prev) => [...prev, detail.item]);
+  // Subscribes on mount, automatically removed on unmount
+  bus.useListener("cart:item_added", (detail) => {
+    console.log(`[Cart] Received item from ${detail.sender}:`, detail.item ?? detail);
+    setCartItems((prev) => [...prev, detail]);
   });
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white">
-      <span> Cart Counter:</span>
+      <span>🛒 Cart Counter:</span>
       <span className="px-2 py-0.5 rounded-full bg-indigo-600 font-bold font-mono">
         {cartItems.length}
       </span>
@@ -353,31 +448,56 @@ export function CartHeaderWidget() {
 }
 ```
 
+### 5.4 Non-React Listeners (Vue / Svelte / Vanilla JS)
+
+For non-React environments, import from the `/events/core` subpath and use `bus.listen()` directly — it returns a plain unsubscribe function you manage yourself:
+
+```javascript
+// Works in Vue, Svelte, Solid, or any Vanilla JS context
+import { createMfeEventBus } from "@subrataroy100/mfe-shared/events/core";
+
+const bus = createMfeEventBus({ sender: "order-service", namespace: "team-commerce" });
+
+// Returns cleanup function — call in component teardown
+const unsubscribe = bus.listen("cart:item_added", (detail) => {
+  console.log("[OrderService] Cart updated:", detail);
+});
+
+// In Vue onUnmounted / Svelte onDestroy:
+// unsubscribe();
+```
+
+> [!NOTE]
+> The `/events/core` subpath exports the pure-JS core (no React imports), making it safe for non-React remotes to import without pulling in React hooks as a side-effect.
+
+
 ---
 
 ## 6. Fault Tolerance & Error Isolation
 
 In a micro-frontend architecture, network partitions or unhandled runtime exceptions inside a remote must **never take down the Host application shell**.
 
-### The `<RemoteErrorBoundary>` Shield
+### Built-In Error Isolation via `UniversalRemoteMount`
 
-Every remote is isolated inside a `<RemoteErrorBoundary>`. When a remote throws an unhandled error or fails to load its remote manifest:
+`UniversalRemoteMount` has error isolation built in — no separate wrapper component required. When a remote throws an unhandled error or its `remoteEntry.js` fails to load, the component renders the `errorFallback` UI you provided and keeps the rest of the host application fully operational:
 
 ```
 +--------------------------------------------------------+
-+  Failed to load Product Catalog                      +
-+ [MFE Boundary Isolated]                                +
++  ⚠ Failed to load Product Catalog                     +
++ [MFE Error Isolated]                                   +
 +                                                        +
 + ChunkLoadError: Failed to fetch remoteEntry.js         +
 +                                                        +
-+ [ Retry Component]                                   +
++ [ 🔄 Retry]                                            +
 + Ensure the remote dev server is running on port 5001.  +
 +--------------------------------------------------------+
 ```
 
 - **Blast Radius Isolated**: Only the remote viewport renders the fallback card.
 - **Host Operability**: Global navigation, user authentication, and sister micro-frontends remain 100% active and responsive.
-- **Recovery**: Users can click **"Retry Component"** to reload the remote module without a full page refresh.
+- **Recovery**: Users can click **"Retry"** to reload the remote module without a full page refresh — `UniversalRemoteMount` internally increments `internalRetry` to re-trigger the dynamic import.
+- **Parent-Controlled Reload**: Pass an incrementing `retryKey` prop from the parent to force a full module reload programmatically (e.g., after a health check resolves).
+
 
 ---
 
@@ -396,7 +516,7 @@ pnpm dev:only productService
 1. `scripts/orchestrate.js` filters `remotes.manifest.json` down to `productService`.
 2. It compiles only `packages/productService/` and starts its watch/preview server on port `5001`.
 3. It launches the `packages/host/` Vite HMR development server on port `5000`.
-4. Other remotes (`orderService`, `inventoryService`) are left offline; if navigated to, the Host's `<RemoteErrorBoundary>` gracefully indicates they are offline by design without crashing.
+4. Other remotes (`orderService`, `inventoryService`) are left offline; if navigated to, `UniversalRemoteMount`'s `errorFallback` gracefully indicates they are offline by design without crashing the host shell.
 
 ### Monorepo Command Quick Reference
 
@@ -406,7 +526,7 @@ pnpm dev:only productService
 | `pnpm dev:only <name>` | Targeted DX: Boots only the Host Shell + the specified remote (e.g. `pnpm dev:only productService`). |
 | `pnpm build` | Compiles all remotes topological in sequence, followed by the host shell. |
 | `pnpm typecheck` | Validates ambient TypeScript contracts across module federation boundaries via `tsc --noEmit`. |
-| `pnpm test` | Executes all 26 automated unit and integration tests via Vitest. |
+| `pnpm test` | Executes all 85 automated unit and integration tests via Vitest. |
 | `pnpm lint` | Runs `oxlint` across all packages in the workspace. |
 
 ---
@@ -441,6 +561,7 @@ When deploying micro-frontends to CDNs or edge platforms (Vercel, Netlify, Cloud
 
 **Ready to start?** Clone the repository, run `pnpm install`, and boot `pnpm dev`!
 
-[GitHub Repository](https://github.com/SubrataRoy100/monorepo-micro-frontend-setup) + [Version 1.0.0 Architecture Specification](v1.0.0_DOCUMENTATION.md)
+[GitHub Repository](https://github.com/SubrataRoy100/react-vite-mfe-starter) · [Version 1.0.0 Architecture Specification](v1.0.0_DOCUMENTATION.md) · [NPM Getting Started Guide](NPM_GETTING_STARTED.md)
 
 </div>
+
