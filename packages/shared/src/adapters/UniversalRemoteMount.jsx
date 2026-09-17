@@ -77,10 +77,12 @@ export function normalizeRemoteModule(mod) {
  */
 export function UniversalRemoteMount({
   loadRemote,
+  module: rawModuleProp,
   remoteKey,
   retryKey = 0,
   props: remoteProps = {},
   fallback = null,
+  errorFallback = null,
   className = "universal-remote-container",
   remoteName = "Remote Micro-Frontend",
   shadowDom = false,
@@ -89,8 +91,9 @@ export function UniversalRemoteMount({
   const containerRef = useRef(null);
   const instanceRef = useRef(null);
   const prevPropsRef = useRef(remoteProps);
-  const loadRemoteRef = useRef(loadRemote);
-  loadRemoteRef.current = loadRemote;
+  const loader = rawModuleProp !== undefined ? rawModuleProp : loadRemote;
+  const loaderRef = useRef(loader);
+  loaderRef.current = loader;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
@@ -107,10 +110,51 @@ export function UniversalRemoteMount({
     setLoading(true);
     setError(null);
 
-    loadRemoteRef.current()
+    const targetLoader = loaderRef.current;
+    if (targetLoader === undefined || targetLoader === null) {
+      const err = new Error(
+        `[UniversalRemoteMount] No module or loadRemote function provided for "${remoteName}". Please provide \`module={() => import('remote/App')}\`.`
+      );
+      setError(err);
+      setLoading(false);
+      onErrorRef.current?.(err);
+      return;
+    }
+
+    let promise;
+    if (typeof targetLoader === "function") {
+      let isLoaderFunction = false;
+      try {
+        const res = targetLoader();
+        if (res && typeof res.then === "function") {
+          promise = res;
+          isLoaderFunction = true;
+        }
+      } catch {
+        // If calling with 0 arguments throws (e.g. Component accessing props.x),
+        // it is a React component directly passed as module={Component}
+        isLoaderFunction = false;
+      }
+
+      if (!isLoaderFunction && !promise) {
+        // targetLoader is a component function directly passed
+        setRemoteModule(() => targetLoader);
+        setLoading(false);
+        return;
+      }
+    } else if (targetLoader && typeof targetLoader.then === "function") {
+      promise = targetLoader;
+    } else {
+      // Direct module or component object passed
+      setRemoteModule(() => targetLoader);
+      setLoading(false);
+      return;
+    }
+
+    promise
       .then((mod) => {
         if (!isMounted) return;
-        setRemoteModule(mod);
+        setRemoteModule(() => mod);
         setLoading(false);
       })
       .catch((err) => {
@@ -230,6 +274,12 @@ export function UniversalRemoteMount({
   }
 
   if (error) {
+    if (typeof errorFallback === "function") {
+      return errorFallback(error, () => setInternalRetry((r) => r + 1));
+    }
+    if (errorFallback) {
+      return errorFallback;
+    }
     return (
       <div className="p-4 rounded-lg border border-red-500/30 bg-red-950/20 text-red-400 text-sm">
         <div>Failed to load {remoteName}: {error.message}</div>

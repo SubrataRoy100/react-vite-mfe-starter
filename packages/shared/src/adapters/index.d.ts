@@ -19,11 +19,13 @@ export interface DualModeReactMount<P = Record<string, any>> extends React.FC<P>
 }
 
 export interface UniversalRemoteMountProps {
-  loadRemote: () => Promise<any>;
+  module?: any;
+  loadRemote?: () => Promise<any>;
   remoteKey?: string;
   retryKey?: number | string;
   props?: Record<string, any>;
   fallback?: React.ReactNode;
+  errorFallback?: React.ReactNode | ((error: Error, retry: () => void) => React.ReactNode);
   className?: string;
   remoteName?: string;
   shadowDom?: boolean | ShadowRootInit;

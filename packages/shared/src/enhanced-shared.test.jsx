@@ -170,6 +170,77 @@ describe("Enhanced @subrataroy100/mfe-shared features", () => {
         expect(wrapper.shadowRoot.innerHTML).toContain("Isolated inside Shadow DOM");
       });
     });
+
+    it("supports module prop as a loader function", async () => {
+      function MyModuleComp(props) {
+        return <div data-testid="module-prop-comp">Module Prop Success: {props.name}</div>;
+      }
+
+      render(
+        <UniversalRemoteMount
+          module={() => Promise.resolve({ default: MyModuleComp })}
+          props={{ name: "CartRemote" }}
+          remoteName="CartRemote"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("module-prop-comp")).toBeDefined();
+        expect(screen.getByTestId("module-prop-comp").textContent).toBe("Module Prop Success: CartRemote");
+      });
+    });
+
+    it("supports module prop as a direct component or module object", async () => {
+      function DirectComp(props) {
+        return <div data-testid="direct-comp">Direct Component: {props.role}</div>;
+      }
+
+      render(
+        <UniversalRemoteMount
+          module={DirectComp}
+          props={{ role: "Admin" }}
+          remoteName="DirectRemote"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("direct-comp")).toBeDefined();
+        expect(screen.getByTestId("direct-comp").textContent).toBe("Direct Component: Admin");
+      });
+    });
+
+    it("renders custom errorFallback function when loading fails", async () => {
+      const failLoader = () => Promise.reject(new Error("Network Timeout"));
+
+      render(
+        <UniversalRemoteMount
+          module={failLoader}
+          remoteName="FailingRemote"
+          errorFallback={(err) => <div data-testid="custom-error">Custom Error: {err.message}</div>}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("custom-error")).toBeDefined();
+        expect(screen.getByTestId("custom-error").textContent).toBe("Custom Error: Network Timeout");
+      });
+    });
+
+    it("handles missing module/loadRemote gracefully without throwing unhandled exceptions", async () => {
+      const onError = vi.fn();
+
+      render(
+        <UniversalRemoteMount
+          remoteName="EmptyRemote"
+          onError={onError}
+        />
+      );
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError.mock.calls[0][0].message).toContain("No module or loadRemote function provided");
+      });
+    });
   });
 
   describe("Vite Federation Preset & CSS chunk injection", () => {
