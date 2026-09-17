@@ -4,7 +4,7 @@ import React from "react";
  * Reusable Button primitive shared across the host shell and every remote
  * micro-frontend, so button styling only has to live and be maintained once.
  */
-export default function Button({
+export function Button({
   children,
   onClick,
   variant = "primary",
@@ -32,3 +32,5 @@ export default function Button({
     </button>
   );
 }
+
+export default Button;

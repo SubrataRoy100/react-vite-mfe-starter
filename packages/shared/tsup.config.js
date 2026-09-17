@@ -1,5 +1,5 @@
 import { defineConfig } from "tsup";
-import { copyFileSync, mkdirSync, existsSync } from "node:fs";
+import { copyFileSync, mkdirSync, existsSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 
 export default defineConfig({
@@ -27,23 +27,81 @@ export default defineConfig({
     "@vitejs/plugin-react",
   ],
   async onSuccess() {
-    const dtsFiles = [
-      ["src/index.d.ts", "dist/index.d.ts"],
-      ["src/events/mfe-events.d.ts", "dist/events/index.d.ts"],
+    const baseDir = import.meta.dirname || process.cwd();
+    const distDir = resolve(baseDir, "dist");
+
+    // Copy core files
+    const copyPairs = [
       ["src/events/mfe-events-core.d.ts", "dist/events/core.d.ts"],
       ["src/constants/config.d.ts", "dist/constants/index.d.ts"],
-      ["src/adapters/index.d.ts", "dist/adapters/index.d.ts"],
       ["src/components/Button.d.ts", "dist/components/Button.d.ts"],
       ["src/vite/index.d.ts", "dist/vite/index.d.ts"],
     ];
 
-    for (const [src, dest] of dtsFiles) {
-      const srcPath = resolve(src);
-      const destPath = resolve(dest);
+    for (const [src, dest] of copyPairs) {
+      const srcPath = resolve(baseDir, src);
+      const destPath = resolve(baseDir, dest);
       if (existsSync(srcPath)) {
         mkdirSync(dirname(destPath), { recursive: true });
         copyFileSync(srcPath, destPath);
       }
     }
+
+    // 1. dist/events/index.d.ts
+    const eventsIndexDts = `import type { MfeEventPayload } from "./core.js";
+
+export * from "./core.js";
+
+export declare function useMfeEventListener<T = MfeEventPayload>(
+  eventName: string,
+  handler: (detail: T) => void
+): void;
+`;
+    writeFileSync(resolve(distDir, "events", "index.d.ts"), eventsIndexDts, "utf-8");
+
+    // 2. dist/adapters/index.d.ts
+    const adaptersIndexDts = `import type React from "react";
+import type { MfeEventPayload } from "../events/core.js";
+
+export interface MfeLifecycle {
+  mount: (container: HTMLElement, props?: Record<string, any>) => (() => void) | void;
+  unmount?: (container: HTMLElement) => void;
+}
+
+export interface UniversalRemoteMountProps {
+  loadRemote: () => Promise<any>;
+  remoteKey?: string;
+  retryKey?: number | string;
+  props?: Record<string, any>;
+  fallback?: React.ReactNode;
+  className?: string;
+  remoteName?: string;
+  onError?: (error: Error) => void;
+}
+
+export declare const UniversalRemoteMount: React.FC<UniversalRemoteMountProps>;
+
+export declare function createReactMount(
+  Component: React.ComponentType<any>
+): MfeLifecycle;
+
+export declare function createVanillaMount(
+  renderFn: (container: HTMLElement, props?: Record<string, any>) => (() => void) | void
+): MfeLifecycle;
+
+export declare function useMfeEventListener<T = MfeEventPayload>(
+  eventName: string,
+  handler: (detail: T) => void
+): void;
+`;
+    writeFileSync(resolve(distDir, "adapters", "index.d.ts"), adaptersIndexDts, "utf-8");
+
+    // 3. dist/index.d.ts
+    const rootIndexDts = `export * from "./events/index.js";
+export * from "./constants/index.js";
+export * from "./adapters/index.js";
+export * from "./components/Button.js";
+`;
+    writeFileSync(resolve(distDir, "index.d.ts"), rootIndexDts, "utf-8");
   },
 });

@@ -1,4 +1,5 @@
 import type React from "react";
+import type { MfeEventPayload } from "../events/mfe-events-core.d.ts";
 
 export interface MfeLifecycle {
   mount: (container: HTMLElement, props?: Record<string, any>) => (() => void) | void;
@@ -25,3 +26,8 @@ export declare function createReactMount(
 export declare function createVanillaMount(
   renderFn: (container: HTMLElement, props?: Record<string, any>) => (() => void) | void
 ): MfeLifecycle;
+
+export declare function useMfeEventListener<T = MfeEventPayload>(
+  eventName: string,
+  handler: (detail: T) => void
+): void;
