@@ -1,4 +1,54 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
+import { createReactMount } from "./createMount.js";
+
+/**
+ * Normalizes any remote module format into a uniform mount contract.
+ *
+ * Supported formats:
+ * 1. Universal Mount Object: `{ mount, update?, unmount? }`
+ * 2. Default Exported Universal Mount: `{ default: { mount, update?, unmount? } }`
+ * 3. React Component (Function or Object with $$typeof / render)
+ *
+ * @param {any} mod
+ * @returns {{ mount: Function, unmount?: Function, update?: Function, Component?: React.ComponentType<any>, raw: any } | null}
+ */
+export function normalizeRemoteModule(mod) {
+  if (!mod) return null;
+
+  // 1. Direct or default-exported .mount lifecycle
+  const mountOwner =
+    typeof mod.mount === "function"
+      ? mod
+      : typeof mod.default?.mount === "function"
+      ? mod.default
+      : null;
+
+  if (mountOwner) {
+    return {
+      mount: mountOwner.mount.bind(mountOwner),
+      unmount: typeof mountOwner.unmount === "function" ? mountOwner.unmount.bind(mountOwner) : undefined,
+      Component: mountOwner.Component,
+      raw: mod,
+    };
+  }
+
+  // 2. React Component (Function or React Element/Component Object)
+  const candidate = mod.default || mod;
+  const isReactComponent =
+    typeof candidate === "function" ||
+    (typeof candidate === "object" && candidate !== null && (candidate.$$typeof || typeof candidate.render === "function"));
+
+  if (isReactComponent) {
+    const reactMount = createReactMount(candidate);
+    return {
+      mount: reactMount.mount,
+      Component: candidate,
+      raw: mod,
+    };
+  }
+
+  return null;
+}
 
 /**
  * Universal Remote Mount Component.
@@ -7,14 +57,22 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
  * - A universal lifecycle contract: `{ mount, unmount, update }` (Vue, Svelte, Solid, Angular, Vanilla).
  * - A native React component.
  *
+ * Features:
+ * - Dual-mode normalizer for all remote contracts.
+ * - Optional Shadow DOM CSS isolation via `shadowDom` prop.
+ * - React 19 safe microtask teardown.
+ * - Prop updates without remounting when `update` is supported.
+ * - Retriable error boundaries.
+ *
  * @param {object} props
- * @param {() => Promise<any>} props.loadRemote Function returning the dynamic import of the remote
+ * @param {() => Promise<any>} props.loadRemote Function returning dynamic import of the remote
  * @param {string} [props.remoteKey] Stable identifier for the remote module; changing triggers a reload
  * @param {number|string} [props.retryKey] Parent-controlled reload/retry token; changing triggers a reload
  * @param {Record<string, any>} [props.props] Props passed down to the remote
  * @param {React.ReactNode} [props.fallback] Loading fallback UI
  * @param {string} [props.className] Container class name
  * @param {string} [props.remoteName] Display name for logging/debugging
+ * @param {boolean|ShadowRootInit} [props.shadowDom] Enables Shadow DOM encapsulation for CSS isolation
  * @param {(error: Error) => void} [props.onError] Callback when loading or mounting fails
  */
 export function UniversalRemoteMount({
@@ -25,6 +83,7 @@ export function UniversalRemoteMount({
   fallback = null,
   className = "universal-remote-container",
   remoteName = "Remote Micro-Frontend",
+  shadowDom = false,
   onError,
 }) {
   const containerRef = useRef(null);
@@ -67,35 +126,37 @@ export function UniversalRemoteMount({
     };
   }, [stableKey, retryKey, internalRetry]);
 
-  // Determine if remote module provides a Universal Mount contract or a React Component
-  const mountFn = useMemo(() => {
-    const mountOwner =
-      typeof remoteModule?.mount === "function"
-        ? remoteModule
-        : typeof remoteModule?.default?.mount === "function"
-        ? remoteModule.default
-        : null;
-    return mountOwner ? mountOwner.mount.bind(mountOwner) : null;
-  }, [remoteModule]);
+  // Normalized lifecycle contract
+  const normalized = useMemo(() => normalizeRemoteModule(remoteModule), [remoteModule]);
 
-  const ReactComponent =
-    !mountFn && remoteModule
-      ? typeof remoteModule.default === "function"
-        ? remoteModule.default
-        : typeof remoteModule === "function"
-        ? remoteModule
-        : null
-      : null;
+  // If it's a native React component and Shadow DOM is NOT requested, we can render directly in Host VDOM
+  const ReactComponent = !shadowDom && normalized?.Component ? normalized.Component : null;
+  const shouldMountDOM = !ReactComponent && normalized && typeof normalized.mount === "function";
 
   const isMountedRef = useRef(false);
   const prevRetryKeyRef = useRef(retryKey);
   const prevInternalRetryRef = useRef(internalRetry);
 
-  // Lifecycle management for Universal DOM mounts
+  // Helper to resolve the target container (either Light DOM container or ShadowRoot)
+  const getTargetContainer = (container) => {
+    if (!container) return null;
+    if (!shadowDom) return container;
+
+    if (container.shadowRoot) {
+      return container.shadowRoot;
+    }
+    const shadowOptions = typeof shadowDom === "object" ? shadowDom : { mode: "open" };
+    return container.attachShadow(shadowOptions);
+  };
+
+  // Lifecycle management for DOM / Shadow DOM mounts
   useEffect(() => {
-    if (!mountFn || !containerRef.current) return;
+    if (!shouldMountDOM || !containerRef.current) return;
 
     const container = containerRef.current;
+    const mountTarget = getTargetContainer(container);
+    if (!mountTarget) return;
+
     const isRetry =
       prevRetryKeyRef.current !== retryKey ||
       prevInternalRetryRef.current !== internalRetry;
@@ -103,13 +164,13 @@ export function UniversalRemoteMount({
     // Initial mount or retry
     if (!isMountedRef.current || isRetry) {
       if (isMountedRef.current) {
-        cleanupInstance(instanceRef.current, remoteModule, container);
+        cleanupInstance(instanceRef.current, remoteModule, mountTarget);
         instanceRef.current = null;
         isMountedRef.current = false;
       }
 
       try {
-        const result = mountFn(container, remoteProps);
+        const result = normalized.mount(mountTarget, remoteProps);
         instanceRef.current = result;
         isMountedRef.current = true;
         prevPropsRef.current = remoteProps;
@@ -134,11 +195,11 @@ export function UniversalRemoteMount({
         }
       } else {
         // Fallback: full unmount and re-mount if update() not provided
-        cleanupInstance(instanceRef.current, remoteModule, container);
+        cleanupInstance(instanceRef.current, remoteModule, mountTarget);
         instanceRef.current = null;
         isMountedRef.current = false;
         try {
-          const result = mountFn(container, remoteProps);
+          const result = normalized.mount(mountTarget, remoteProps);
           instanceRef.current = result;
           isMountedRef.current = true;
           prevPropsRef.current = remoteProps;
@@ -149,19 +210,20 @@ export function UniversalRemoteMount({
         }
       }
     }
-  }, [mountFn, remoteProps, remoteName, remoteModule, retryKey, internalRetry]);
+  }, [shouldMountDOM, normalized, remoteProps, remoteName, remoteModule, retryKey, internalRetry, shadowDom]);
 
   // Cleanup on unmount
   useEffect(() => {
     const container = containerRef.current;
     return () => {
-      if (isMountedRef.current) {
-        cleanupInstance(instanceRef.current, remoteModule, container);
+      if (isMountedRef.current && container) {
+        const mountTarget = shadowDom && container.shadowRoot ? container.shadowRoot : container;
+        cleanupInstance(instanceRef.current, remoteModule, mountTarget);
         instanceRef.current = null;
         isMountedRef.current = false;
       }
     };
-  }, [remoteModule]);
+  }, [remoteModule, shadowDom]);
 
   if (loading) {
     return fallback || <div className="text-gray-400 py-8 text-center">Loading {remoteName}...</div>;

@@ -43,6 +43,11 @@ export declare const DEFAULT_SHARED_DEPS: Record<string, any>;
 export declare const FRAMEWORK_SHARED_DEPS: Record<MfeFramework, Record<string, any>>;
 export declare const federationCssFixPlugin: PluginOption;
 
+export declare function mergeSharedDeps(
+  framework?: MfeFramework,
+  userShared?: Record<string, any> | string[]
+): Record<string, any>;
+
 export declare function defineRemoteConfig(
   optionsOrFn: RemoteConfigOptions | ((env: ConfigEnv) => RemoteConfigOptions)
 ): UserConfigExport;

@@ -31,10 +31,9 @@ export const FRAMEWORK_SHARED_DEPS = {
 export const DEFAULT_SHARED_DEPS = FRAMEWORK_SHARED_DEPS.react;
 
 /**
- * Workaround Vite 8 template literal placeholder bug in vite-plugin-federation.
- * Vite 8 / esbuild turns string literals into template literals (backticks).
- * vite-plugin-federation only replaces single/double quoted __v__css__ strings,
- * leaving backtick `__v__css__...` untouched.
+ * Workaround Vite 8 template literal placeholder bug in vite-plugin-federation,
+ * and automatically injects remote CSS styles into document.head at runtime
+ * when remoteEntry.js is loaded by the Host container.
  */
 export const federationCssFixPlugin = {
   name: "federation-css-fix",
@@ -47,15 +46,54 @@ export const federationCssFixPlugin = {
     const remoteEntryChunk = bundle[entryKey];
     if (!remoteEntryChunk || !remoteEntryChunk.code) return;
 
-    const cssFiles = Object.keys(bundle)
-      .filter((name) => name.endsWith(".css"))
-      .map((name) => name.split("/").pop());
+    // All CSS files in the bundle (relative to output directory)
+    const cssBundleFiles = Object.keys(bundle).filter((name) =>
+      name.endsWith(".css")
+    );
 
-    const cssArray = JSON.stringify(cssFiles);
+    const cssFileBasenames = cssBundleFiles.map((name) => name.split("/").pop());
+
+    // 1. Replace the vite-plugin-federation __v__css__ placeholder
+    const cssArray = JSON.stringify(cssFileBasenames);
     remoteEntryChunk.code = remoteEntryChunk.code.replace(
       /(["'`])__v__css__.*?\1/g,
       cssArray
     );
+
+    // 2. Prepend runtime auto-injector if CSS files exist and not already injected
+    if (cssBundleFiles.length > 0) {
+      const cssPathsJson = JSON.stringify(cssBundleFiles);
+      const injectorCode = `(function() {
+  if (typeof document === 'undefined') return;
+  try {
+    var curUrl = '';
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+      curUrl = import.meta.url;
+    } else if (document.currentScript && document.currentScript.src) {
+      curUrl = document.currentScript.src;
+    }
+    var baseUrl = curUrl ? curUrl.substring(0, curUrl.lastIndexOf('/') + 1) : '';
+    var cssFiles = ${cssPathsJson};
+    cssFiles.forEach(function(cssFile) {
+      var fullHref = baseUrl ? (new URL(cssFile, baseUrl)).href : cssFile;
+      var existing = document.querySelector('link[rel="stylesheet"][href="' + fullHref + '"], link[rel="stylesheet"][data-mfe-css="' + cssFile + '"]');
+      if (!existing) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = fullHref;
+        link.setAttribute('data-mfe-css', cssFile);
+        document.head.appendChild(link);
+      }
+    });
+  } catch (e) {
+    console.warn('[federation-css-fix] Auto-injecting remote styles failed:', e);
+  }
+})();\n`;
+
+      if (!remoteEntryChunk.code.includes("[federation-css-fix]")) {
+        remoteEntryChunk.code = injectorCode + remoteEntryChunk.code;
+      }
+    }
   },
 };
 
@@ -78,6 +116,55 @@ function findManifest(startDir = process.cwd()) {
     curr = parent;
   }
   return null;
+}
+
+/**
+ * Merges baseline framework shared dependencies with user overrides cleanly,
+ * preserving singleton and package options.
+ *
+ * @param {string} [framework="react"]
+ * @param {object|string[]} [userShared={}]
+ * @returns {Record<string, any>}
+ */
+export function mergeSharedDeps(framework = "react", userShared = {}) {
+  const baselineShared = FRAMEWORK_SHARED_DEPS[framework] || {};
+  const mergedShared = {};
+
+  // Copy baseline definitions safely
+  for (const [dep, baselineConfig] of Object.entries(baselineShared)) {
+    mergedShared[dep] =
+      typeof baselineConfig === "object" && baselineConfig !== null
+        ? { ...baselineConfig }
+        : baselineConfig;
+  }
+
+  // Deep merge user overrides per dependency to preserve singleton settings
+  if (Array.isArray(userShared)) {
+    for (const dep of userShared) {
+      if (!mergedShared[dep]) {
+        mergedShared[dep] = {};
+      }
+    }
+  } else if (typeof userShared === "object" && userShared !== null) {
+    for (const [dep, userConfig] of Object.entries(userShared)) {
+      if (
+        mergedShared[dep] &&
+        typeof mergedShared[dep] === "object" &&
+        typeof userConfig === "object" &&
+        userConfig !== null &&
+        !Array.isArray(userConfig)
+      ) {
+        mergedShared[dep] = {
+          ...mergedShared[dep],
+          ...userConfig,
+        };
+      } else {
+        mergedShared[dep] = userConfig;
+      }
+    }
+  }
+
+  return mergedShared;
 }
 
 /**
@@ -140,11 +227,7 @@ export function defineRemoteConfig(optionsOrFn) {
     }
 
     // Determine baseline shared dependencies based on framework
-    const baselineShared = FRAMEWORK_SHARED_DEPS[framework] || {};
-    const mergedShared = {
-      ...baselineShared,
-      ...shared,
-    };
+    const mergedShared = mergeSharedDeps(framework, shared);
 
     // Determine framework bundler plugin
     const frameworkPlugins = [];
