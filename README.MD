@@ -140,7 +140,7 @@ Host remote URLs can be overridden at build-time via environment variables or dy
 ```html
 <script>
   window.__MFE_RUNTIME_CONFIG__ = {
-    demoService: "https://staging-cdn.example.com/assets/remoteEntry.js"
+    demoService: "https://staging-cdn.example.com/remoteEntry.js"
   };
 </script>
 ```
@@ -252,13 +252,13 @@ Adding a new micro-frontend is completely decoupled and automated through `remot
      "demoService": {
        "port": 5001,
        "path": "/demo",
-       "entry": "/assets/remoteEntry.js",
+       "entry": "/remoteEntry.js",
        "envVar": "VITE_DEMO_SERVICE_URL"
      },
      "myService": {
        "port": 5002,
        "path": "/myservice",
-       "entry": "/assets/remoteEntry.js",
+       "entry": "/remoteEntry.js",
        "envVar": "VITE_MY_SERVICE_URL"
      }
    }

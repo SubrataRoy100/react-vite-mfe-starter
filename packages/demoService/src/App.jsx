@@ -9,10 +9,12 @@ export default function App() {
   return (
     <StoreProvider>
       <div className="mfe-remote-root mfe-demo-service">
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/settings" element={<DemoSettingsPage />} />
-        </Routes>
+        <React.Suspense fallback={<div className="p-8 text-center text-slate-400 font-mono text-xs">Loading page view...</div>}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/settings" element={<DemoSettingsPage />} />
+          </Routes>
+        </React.Suspense>
       </div>
     </StoreProvider>
   );

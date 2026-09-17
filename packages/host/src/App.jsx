@@ -1,12 +1,10 @@
 import React from "react";
 import { Route, Routes } from "react-router";
-import RemoteErrorBoundary from "./components/RemoteErrorBoundary";
 import LoadingFallback from "./components/LoadingFallback";
 
 import Navbar from "./components/Navbar";
+import RetriableRemote from "./components/RetriableRemote";
 
-// Lazily pull your remote demo service module over the network
-const DemoApp = React.lazy(() => import("demoService/App"));
 const LandingPage = React.lazy(() => import("./pages/LandingPage"));
 
 function App() {
@@ -29,11 +27,11 @@ function App() {
           <Route
             path="/demo/*"
             element={
-              <RemoteErrorBoundary remoteName="Demo Service Module">
-                <React.Suspense fallback={<LoadingFallback message="Streaming Demo Service Micro-Frontend..." />}>
-                  <DemoApp />
-                </React.Suspense>
-              </RemoteErrorBoundary>
+              <RetriableRemote
+                loader={() => import("demoService/App")}
+                remoteName="Demo Service Module"
+                fallbackMessage="Streaming Demo Service Micro-Frontend..."
+              />
             }
           />
         </Routes>

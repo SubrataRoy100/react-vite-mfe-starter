@@ -1,5 +1,5 @@
 /* oxlint-disable react/only-export-components */
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { PRODUCTS, CURRENCIES } from "../data/products.js";
 import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
 
@@ -17,21 +17,35 @@ export function StoreProvider({ children }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [toastMessage, setToastMessage] = useState(null);
+  const toastTimerRef = useRef(null);
 
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // Sync initial cart count across the monorepo event bus
   useEffect(() => {
-    sendMfeEvent("mfe:cart_update", {
+    sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
       count: totalCartCount,
       sender: "CloudStore Remote",
     });
   }, [totalCartCount]);
 
+  // Cleanup toast timer on unmount
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
   function showToast(msg) {
     setToastMessage(msg);
-    setTimeout(() => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    toastTimerRef.current = setTimeout(() => {
       setToastMessage(null);
+      toastTimerRef.current = null;
     }, 3000);
   }
 
@@ -52,7 +66,7 @@ export function StoreProvider({ children }) {
       const newTotal = newCart.reduce((sum, i) => sum + i.quantity, 0);
 
       // Notify the Host Shell and other remotes over the Cross-MFE Event Bus!
-      sendMfeEvent("mfe:cart_update", {
+      sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
         count: newTotal,
         sender: "CloudStore Remote",
         product: product.name,
@@ -75,7 +89,7 @@ export function StoreProvider({ children }) {
       const newCart = prev.filter((item) => item.product.id !== productId);
       const newTotal = newCart.reduce((sum, i) => sum + i.quantity, 0);
 
-      sendMfeEvent("mfe:cart_update", {
+      sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
         count: newTotal,
         sender: "CloudStore Remote",
       });
@@ -104,7 +118,7 @@ export function StoreProvider({ children }) {
         .filter(Boolean);
 
       const newTotal = newCart.reduce((sum, i) => sum + i.quantity, 0);
-      sendMfeEvent("mfe:cart_update", {
+      sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
         count: newTotal,
         sender: "CloudStore Remote",
       });
@@ -115,7 +129,7 @@ export function StoreProvider({ children }) {
 
   function clearCart() {
     setCart([]);
-    sendMfeEvent("mfe:cart_update", {
+    sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
       count: 0,
       sender: "CloudStore Remote",
     });
@@ -126,11 +140,14 @@ export function StoreProvider({ children }) {
     showToast("Cart has been cleared");
   }
 
-  function formatPrice(usdAmount) {
-    const cur = CURRENCIES[currency] || CURRENCIES.USD;
-    const converted = usdAmount * cur.rate;
-    return `${cur.symbol}${converted.toFixed(2)}`;
-  }
+  const formatPrice = useCallback(
+    (usdAmount) => {
+      const cur = CURRENCIES[currency] || CURRENCIES.USD;
+      const converted = usdAmount * cur.rate;
+      return `${cur.symbol}${converted.toFixed(2)}`;
+    },
+    [currency]
+  );
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
@@ -140,34 +157,52 @@ export function StoreProvider({ children }) {
   const shipping = subtotal > 200 || subtotal === 0 ? 0 : 15;
   const total = subtotal + tax + shipping;
 
+  const contextValue = useMemo(
+    () => ({
+      products,
+      cart,
+      totalCartCount,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      currency,
+      setCurrency,
+      showOutOfStock,
+      setShowOutOfStock,
+      isCartOpen,
+      setIsCartOpen,
+      searchQuery,
+      setSearchQuery,
+      selectedCategory,
+      setSelectedCategory,
+      formatPrice,
+      subtotal,
+      tax,
+      shipping,
+      total,
+      toastMessage,
+    }),
+    [
+      products,
+      cart,
+      totalCartCount,
+      currency,
+      showOutOfStock,
+      isCartOpen,
+      searchQuery,
+      selectedCategory,
+      formatPrice,
+      subtotal,
+      tax,
+      shipping,
+      total,
+      toastMessage,
+    ]
+  );
+
   return (
-    <StoreContext.Provider
-      value={{
-        products,
-        cart,
-        totalCartCount,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        currency,
-        setCurrency,
-        showOutOfStock,
-        setShowOutOfStock,
-        isCartOpen,
-        setIsCartOpen,
-        searchQuery,
-        setSearchQuery,
-        selectedCategory,
-        setSelectedCategory,
-        formatPrice,
-        subtotal,
-        tax,
-        shipping,
-        total,
-        toastMessage,
-      }}
-    >
+    <StoreContext.Provider value={contextValue}>
       {children}
     </StoreContext.Provider>
   );

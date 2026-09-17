@@ -9,6 +9,8 @@ import React, { useEffect, useRef, useState } from "react";
  *
  * @param {object} props
  * @param {() => Promise<any>} props.loadRemote Function returning the dynamic import of the remote
+ * @param {string} [props.remoteKey] Stable identifier for the remote module; changing triggers a reload
+ * @param {number|string} [props.retryKey] Parent-controlled reload/retry token; changing triggers a reload
  * @param {Record<string, any>} [props.props] Props passed down to the remote
  * @param {React.ReactNode} [props.fallback] Loading fallback UI
  * @param {string} [props.className] Container class name
@@ -17,6 +19,8 @@ import React, { useEffect, useRef, useState } from "react";
  */
 export function UniversalRemoteMount({
   loadRemote,
+  remoteKey,
+  retryKey = 0,
   props: remoteProps = {},
   fallback = null,
   className = "universal-remote-container",
@@ -34,6 +38,9 @@ export function UniversalRemoteMount({
   const [remoteModule, setRemoteModule] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [internalRetry, setInternalRetry] = useState(0);
+
+  const stableKey = remoteKey || remoteName;
 
   // Load the remote module asynchronously (stable against inline function recreation)
   useEffect(() => {
@@ -58,7 +65,7 @@ export function UniversalRemoteMount({
     return () => {
       isMounted = false;
     };
-  }, [remoteName]);
+  }, [stableKey, retryKey, internalRetry]);
 
   // Determine if remote module provides a Universal Mount contract or a React Component
   const mountFn =
@@ -77,6 +84,8 @@ export function UniversalRemoteMount({
         : null
       : null;
 
+  const isMountedRef = useRef(false);
+
   // Lifecycle management for Universal DOM mounts
   useEffect(() => {
     if (!mountFn || !containerRef.current) return;
@@ -84,10 +93,11 @@ export function UniversalRemoteMount({
     const container = containerRef.current;
 
     // Initial mount
-    if (!instanceRef.current) {
+    if (!isMountedRef.current) {
       try {
         const result = mountFn(container, remoteProps);
         instanceRef.current = result;
+        isMountedRef.current = true;
         prevPropsRef.current = remoteProps;
       } catch (mountErr) {
         const resolvedErr = mountErr instanceof Error ? mountErr : new Error(String(mountErr));
@@ -110,9 +120,11 @@ export function UniversalRemoteMount({
         // Fallback: full unmount and re-mount if update() not provided
         cleanupInstance(instanceRef.current, remoteModule, container);
         instanceRef.current = null;
+        isMountedRef.current = false;
         try {
           const result = mountFn(container, remoteProps);
           instanceRef.current = result;
+          isMountedRef.current = true;
           prevPropsRef.current = remoteProps;
         } catch (remountErr) {
           const resolvedErr = remountErr instanceof Error ? remountErr : new Error(String(remountErr));
@@ -127,9 +139,10 @@ export function UniversalRemoteMount({
   useEffect(() => {
     const container = containerRef.current;
     return () => {
-      if (instanceRef.current) {
+      if (isMountedRef.current) {
         cleanupInstance(instanceRef.current, remoteModule, container);
         instanceRef.current = null;
+        isMountedRef.current = false;
       }
     };
   }, [remoteModule]);
@@ -141,7 +154,15 @@ export function UniversalRemoteMount({
   if (error) {
     return (
       <div className="p-4 rounded-lg border border-red-500/30 bg-red-950/20 text-red-400 text-sm">
-        Failed to load {remoteName}: {error.message}
+        <div>Failed to load {remoteName}: {error.message}</div>
+        <button
+          type="button"
+          onClick={() => setInternalRetry((r) => r + 1)}
+          className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-sm transition active:scale-95"
+        >
+          <span>🔄</span>
+          <span>Retry</span>
+        </button>
       </div>
     );
   }
@@ -162,8 +183,10 @@ function cleanupInstance(instance, remoteModule, container) {
       instance();
     } else if (instance && typeof instance.unmount === "function") {
       instance.unmount(container);
-    } else if (remoteModule && typeof remoteModule.unmount === "function") {
+    } else if (typeof remoteModule?.unmount === "function") {
       remoteModule.unmount(container);
+    } else if (typeof remoteModule?.default?.unmount === "function") {
+      remoteModule.default.unmount(container);
     }
   } catch (err) {
     console.error("[UniversalRemoteMount] Error during unmount cleanup:", err);

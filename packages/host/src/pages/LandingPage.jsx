@@ -1,11 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router";
-import RemoteErrorBoundary from "../components/RemoteErrorBoundary";
-import LoadingFallback from "../components/LoadingFallback";
-import { useMfeEventListener, sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
-
-// Dynamically import the federated development testing widget from remote
-const RemoteMfeDevWidget = React.lazy(() => import("demoService/MfeDevWidget"));
+import RetriableRemote from "../components/RetriableRemote";
+import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
+import { useMfeEventListener } from "@mfe/shared/adapters";
 
 function LandingPage() {
   const [eventsFeed, setEventsFeed] = useState([
@@ -38,7 +35,7 @@ function LandingPage() {
   });
 
   // Listen for Cross-MFE Cart & Notification events
-  useMfeEventListener("mfe:cart_update", (detail) => {
+  useMfeEventListener(MFE_EVENTS.CART_UPDATE, (detail) => {
     setEventsFeed((prev) => [
       {
         id: Date.now() + Math.random(),
@@ -53,7 +50,7 @@ function LandingPage() {
     ]);
   });
 
-  useMfeEventListener("mfe:order_placed", (detail) => {
+  useMfeEventListener(MFE_EVENTS.ORDER_PLACED, (detail) => {
     setEventsFeed((prev) => [
       {
         id: Date.now() + Math.random(),
@@ -247,11 +244,12 @@ function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Embedded Federated Remote Widget */}
             <div className="lg:col-span-2">
-              <RemoteErrorBoundary remoteName="Federated Dev Widget">
-                <React.Suspense fallback={<LoadingFallback message="Loading federated widget from remote..." />}>
-                  <RemoteMfeDevWidget title="Remote Widget Federated into Host Shell" />
-                </React.Suspense>
-              </RemoteErrorBoundary>
+              <RetriableRemote
+                loader={() => import("demoService/MfeDevWidget")}
+                remoteName="Federated Dev Widget"
+                fallbackMessage="Loading federated widget from remote..."
+                title="Remote Widget Federated into Host Shell"
+              />
             </div>
 
             {/* Host Event Monitor Feed */}

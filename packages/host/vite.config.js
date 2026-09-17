@@ -20,12 +20,14 @@ const remotes = Object.fromEntries(
     return [
       name,
       {
-        external: `Promise.resolve((typeof window !== 'undefined' && window.__MFE_RUNTIME_CONFIG__ && window.__MFE_RUNTIME_CONFIG__['${name}']) || '${fallbackUrl}')`,
+        external: `Promise.resolve((typeof window !== 'undefined' && window.__MFE_RUNTIME_CONFIG__ && window.__MFE_RUNTIME_CONFIG__[${JSON.stringify(name)}]) || ${JSON.stringify(fallbackUrl)})`,
         externalType: "promise",
       },
     ];
   })
 );
+
+const hostPort = Number(process.env.HOST_PORT || remotesManifest?.host?.port || 5000);
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -42,7 +44,11 @@ export default defineConfig(({ mode }) => ({
     }),
   ],
   server: {
-    port: 5000,
+    port: hostPort,
+    strictPort: true,
+  },
+  preview: {
+    port: hostPort,
     strictPort: true,
   },
 

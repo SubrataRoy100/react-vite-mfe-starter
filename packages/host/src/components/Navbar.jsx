@@ -1,23 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router";
-import { useMfeEventListener } from "@mfe/shared";
+import { MFE_EVENTS } from "@mfe/shared";
+import { useMfeEventListener } from "@mfe/shared/adapters";
 
 export default function Navbar() {
   const location = useLocation();
   const [cartCount, setCartCount] = useState(1); // starts synced with initial demo cart
   const [lastNotification, setLastNotification] = useState(null);
+  const notificationTimerRef = useRef(null);
+
+  // Clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (notificationTimerRef.current) {
+        clearTimeout(notificationTimerRef.current);
+      }
+    };
+  }, []);
 
   // Cross-MFE Event Listeners: Host tracks remote store updates in real-time
-  useMfeEventListener("mfe:cart_update", (detail) => {
+  useMfeEventListener(MFE_EVENTS.CART_UPDATE, (detail) => {
     if (typeof detail.count === "number") {
       setCartCount(detail.count);
     }
   });
 
-  useMfeEventListener("mfe:notification", (detail) => {
+  useMfeEventListener(MFE_EVENTS.NOTIFICATION, (detail) => {
     if (detail.message) {
       setLastNotification(detail.message);
-      setTimeout(() => setLastNotification(null), 3500);
+      if (notificationTimerRef.current) {
+        clearTimeout(notificationTimerRef.current);
+      }
+      notificationTimerRef.current = setTimeout(() => {
+        setLastNotification(null);
+        notificationTimerRef.current = null;
+      }, 3500);
     }
   });
 

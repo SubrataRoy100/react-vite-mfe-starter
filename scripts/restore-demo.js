@@ -47,7 +47,7 @@ if (existsSync(backupManifest)) {
     currentManifest.demoService = originalManifest.demoService || {
       port: 5001,
       path: "/demo",
-      entry: "/assets/remoteEntry.js",
+      entry: "/remoteEntry.js",
       envVar: "VITE_DEMO_SERVICE_URL",
     };
 

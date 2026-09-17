@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.js",
     "./events": "./src/events/mfe-events.js",
+    "./events/core": "./src/events/mfe-events-core.js",
     "./constants": "./src/constants/config.js",
     "./components/Button": "./src/components/Button.jsx",
     "./adapters": {
@@ -33,6 +34,9 @@
     "vite": "^8.0.0"
   },
   "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
     "react-dom": {
       "optional": true
     },

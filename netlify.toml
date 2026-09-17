@@ -7,7 +7,7 @@
 # forever.
 
 [[headers]]
-  for = "/**/remoteEntry.js"
+  for = "/remoteEntry.js"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 

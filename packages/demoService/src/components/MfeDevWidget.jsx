@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { sendMfeEvent, useMfeEventListener, MFE_EVENTS } from "@mfe/shared";
+import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
+import { useMfeEventListener } from "@mfe/shared/adapters";
 
 /**
  * MfeDevWidget

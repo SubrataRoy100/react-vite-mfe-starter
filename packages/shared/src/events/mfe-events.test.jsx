@@ -119,5 +119,77 @@ describe("Cross-MFE Event Bus (mfe-events)", () => {
       // Handler should NOT be called again
       expect(handler).toHaveBeenCalledTimes(1);
     });
+
+    it("does not re-register event listener when re-rendered with a new inline handler function", () => {
+      const addSpy = vi.spyOn(window, "addEventListener");
+      const removeSpy = vi.spyOn(window, "removeEventListener");
+
+      let latestMessage = "";
+      const { rerender } = renderHook(
+        ({ onMsg }) => useMfeEventListener(MFE_EVENTS.PING, onMsg),
+        {
+          initialProps: {
+            onMsg: (detail) => {
+              latestMessage = `v1: ${detail.message}`;
+            },
+          },
+        }
+      );
+
+      expect(addSpy).toHaveBeenCalledWith(MFE_EVENTS.PING, expect.any(Function));
+      const addCallsBefore = addSpy.mock.calls.filter(([evt]) => evt === MFE_EVENTS.PING).length;
+      const removeCallsBefore = removeSpy.mock.calls.filter(([evt]) => evt === MFE_EVENTS.PING).length;
+
+      // Re-render with a fresh inline arrow function
+      rerender({
+        onMsg: (detail) => {
+          latestMessage = `v2: ${detail.message}`;
+        },
+      });
+
+      const addCallsAfter = addSpy.mock.calls.filter(([evt]) => evt === MFE_EVENTS.PING).length;
+      const removeCallsAfter = removeSpy.mock.calls.filter(([evt]) => evt === MFE_EVENTS.PING).length;
+
+      // Listener MUST NOT have been re-subscribed or removed
+      expect(addCallsAfter).toBe(addCallsBefore);
+      expect(removeCallsAfter).toBe(removeCallsBefore);
+
+      // Firing the event must invoke the latest handler (v2)
+      act(() => {
+        sendMfeEvent(MFE_EVENTS.PING, { message: "ref-check" });
+      });
+
+      expect(latestMessage).toBe("v2: ref-check");
+    });
+
+    it("supports newly standardized CART_UPDATE and ORDER_PLACED events", () => {
+      expect(MFE_EVENTS.CART_UPDATE).toBe("mfe:cart_update");
+      expect(MFE_EVENTS.ORDER_PLACED).toBe("mfe:order_placed");
+
+      const cartHandler = vi.fn();
+      const orderHandler = vi.fn();
+
+      const unsubCart = renderHook(() =>
+        useMfeEventListener(MFE_EVENTS.CART_UPDATE, cartHandler)
+      );
+      const unsubOrder = renderHook(() =>
+        useMfeEventListener(MFE_EVENTS.ORDER_PLACED, orderHandler)
+      );
+
+      act(() => {
+        sendMfeEvent(MFE_EVENTS.CART_UPDATE, { count: 3 });
+        sendMfeEvent(MFE_EVENTS.ORDER_PLACED, { orderId: "ORD-99" });
+      });
+
+      expect(cartHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ count: 3 })
+      );
+      expect(orderHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: "ORD-99" })
+      );
+
+      unsubCart.unmount();
+      unsubOrder.unmount();
+    });
   });
 });

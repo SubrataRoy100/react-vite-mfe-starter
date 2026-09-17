@@ -203,5 +203,143 @@ describe("Universal Adapters & Framework-Agnostic Support", () => {
         expect(screen.getByText(/Failed to load FailingRemote: Network chunk failed/)).toBeDefined();
       });
     });
+
+    it("recovers from failed load upon clicking the Retry affordance", async () => {
+      let attempt = 0;
+      const loadRemote = vi.fn().mockImplementation(() => {
+        attempt++;
+        if (attempt === 1) {
+          return Promise.reject(new Error("Transient fetch error"));
+        }
+        return Promise.resolve({
+          mount: (container) => {
+            container.innerHTML = '<div data-testid="recovered-content">Recovered!</div>';
+          },
+        });
+      });
+
+      render(
+        <UniversalRemoteMount
+          loadRemote={loadRemote}
+          remoteName="RecoverableRemote"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/Failed to load RecoverableRemote: Transient fetch error/)).toBeDefined();
+      });
+
+      // Click the internal Retry button
+      const retryBtn = screen.getByRole("button", { name: /retry/i });
+      retryBtn.click();
+
+      await waitFor(() => {
+        expect(screen.getByTestId("recovered-content")).toBeDefined();
+        expect(screen.getByTestId("recovered-content").textContent).toBe("Recovered!");
+      });
+
+      expect(loadRemote).toHaveBeenCalledTimes(2);
+    });
+
+    it("re-executes remote loader when parent increments retryKey", async () => {
+      let attempt = 0;
+      const loadRemote = vi.fn().mockImplementation(() => {
+        attempt++;
+        if (attempt === 1) {
+          return Promise.reject(new Error("Initial load failure"));
+        }
+        return Promise.resolve({
+          mount: (container) => {
+            container.innerHTML = '<div data-testid="retry-key-recovered">Retry Key Success</div>';
+          },
+        });
+      });
+
+      const { rerender } = render(
+        <UniversalRemoteMount
+          loadRemote={loadRemote}
+          remoteName="RetryKeyRemote"
+          retryKey={0}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/Failed to load RetryKeyRemote: Initial load failure/)).toBeDefined();
+      });
+
+      // Bump retryKey
+      rerender(
+        <UniversalRemoteMount
+          loadRemote={loadRemote}
+          remoteName="RetryKeyRemote"
+          retryKey={1}
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("retry-key-recovered")).toBeDefined();
+      });
+
+      expect(loadRemote).toHaveBeenCalledTimes(2);
+    });
+
+    it("calls remoteModule.default.unmount when mount returns nothing and remoteModule is default-exported", async () => {
+      const defaultUnmountMock = vi.fn();
+      const mockModule = {
+        default: {
+          mount: vi.fn((container) => {
+            container.innerHTML = '<span data-testid="default-mount">Mounted via default</span>';
+            // returns nothing (void)
+          }),
+          unmount: defaultUnmountMock,
+        },
+      };
+
+      const loadRemote = vi.fn().mockResolvedValue(mockModule);
+
+      const { unmount } = render(
+        <UniversalRemoteMount
+          loadRemote={loadRemote}
+          remoteName="DefaultLifecycleRemote"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("default-mount")).toBeDefined();
+      });
+
+      unmount();
+      expect(defaultUnmountMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("handles React.StrictMode cleanly with double-invocation settling correctly", async () => {
+      const mockCleanup = vi.fn();
+      const mockRemoteModule = {
+        mount: vi.fn((container) => {
+          container.innerHTML = '<div data-testid="strict-mode-content">Strict Content</div>';
+          return mockCleanup;
+        }),
+      };
+
+      const loadRemote = vi.fn().mockResolvedValue(mockRemoteModule);
+
+      const { unmount } = render(
+        <React.StrictMode>
+          <UniversalRemoteMount
+            loadRemote={loadRemote}
+            remoteName="StrictModeRemote"
+          />
+        </React.StrictMode>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("strict-mode-content")).toBeDefined();
+      });
+
+      // StrictMode in development simulates an immediate mount -> unmount -> mount.
+      // Now unmount the component completely and verify cleanup was called.
+      unmount();
+      expect(mockCleanup).toHaveBeenCalled();
+    });
   });
 });

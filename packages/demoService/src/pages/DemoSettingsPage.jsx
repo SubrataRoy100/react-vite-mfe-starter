@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router";
 import { useStore } from "../context/StoreContext";
-import { Button } from "@mfe/shared";
+import Button from "@mfe/shared/components/Button";
 
 export default function DemoSettingsPage() {
   const {
@@ -14,10 +14,25 @@ export default function DemoSettingsPage() {
   } = useStore();
 
   const [savedNotice, setSavedNotice] = useState(false);
+  const saveTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
 
   function handleSave() {
     setSavedNotice(true);
-    setTimeout(() => setSavedNotice(false), 2000);
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = setTimeout(() => {
+      setSavedNotice(false);
+      saveTimerRef.current = null;
+    }, 2000);
   }
 
   return (
@@ -155,7 +170,7 @@ export default function DemoSettingsPage() {
                   Federation Entry Point
                 </span>
                 <span className="font-mono font-bold text-slate-800">
-                  /assets/remoteEntry.js
+                  /remoteEntry.js
                 </span>
               </div>
             </div>

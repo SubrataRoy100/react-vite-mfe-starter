@@ -4,7 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>host</title>
+    <title>Micro-Frontend Hub</title>
+    <!--
+      Runtime Micro-Frontend Configuration Override Hook:
+      Populated at deploy or server edge runtime without requiring a rebuild.
+      Example: window.__MFE_RUNTIME_CONFIG__ = { demoService: "https://cdn.example.com/remoteEntry.js" };
+    -->
+    <script>
+      window.__MFE_RUNTIME_CONFIG__ = window.__MFE_RUNTIME_CONFIG__ || {};
+    </script>
   </head>
   <body>
     <div id="root"></div>

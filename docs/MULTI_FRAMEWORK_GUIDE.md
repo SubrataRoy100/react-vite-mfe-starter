@@ -10,6 +10,16 @@ This monorepo supports micro-frontends built in **any frontend framework**:
 
 All remotes coexist in the same workspace, participate in automated dev/build orchestration, communicate via the decoupled Cross-MFE Event Bus, and mount smoothly into the Host Container.
 
+### Framework Support & Testing Status
+
+| Framework | Universal Mount Contract | Status in Monorepo | CI Verification |
+| :--- | :--- | :--- | :--- |
+| **React 19** | Native component or `{ mount }` | **Active & Tested** (`demoService`, `host`) | Verified in test suite & build |
+| **Vanilla JS / Web Components** | `{ mount, unmount }` | **Active & Tested** (`createVanillaMount`, `UniversalRemoteMount`) | Verified in test suite |
+| **Vue 3** | `{ mount, unmount }` | **Documented Specification** (`defineRemoteConfig({ framework: "vue" })`) | Documented, untested in default workspace |
+| **Svelte 5** | `{ mount, unmount }` | **Documented Specification** (`defineRemoteConfig({ framework: "svelte" })`) | Documented, untested in default workspace |
+| **SolidJS** | `{ mount, unmount }` | **Documented Specification** (`defineRemoteConfig({ framework: "solid" })`) | Documented, untested in default workspace |
+
 ---
 
 ## 1. Core Architecture: Universal DOM Mount Contract
@@ -247,9 +257,18 @@ The event bus in `@mfe/shared/events` uses pure native DOM `CustomEvent` dispatc
 
 * **Listening in React**:
   ```javascript
-  import { useMfeEventListener, MFE_EVENTS } from "@mfe/shared/events";
+  import { useMfeEventListener, MFE_EVENTS } from "@mfe/shared/adapters";
 
   useMfeEventListener(MFE_EVENTS.PING, (detail) => {
     console.log("Ping received:", detail);
   });
   ```
+
+---
+
+## 5. CSS Isolation & Styling Strategies
+
+When co-locating multiple frameworks (Vue, Svelte, React) in one document:
+- The default setup utilizes shared Tailwind CSS tokens.
+- For complete style encapsulation (e.g. mounting inside a Shadow Root or scoped class namespaces), see the detailed [CSS Isolation Guide](./CSS_ISOLATION.md).
+

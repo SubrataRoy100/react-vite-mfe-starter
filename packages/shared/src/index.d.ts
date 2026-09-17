@@ -1,9 +1,2 @@
-export * from "./events/mfe-events.d.ts";
-export * from "./adapters/index.d.ts";
-
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "danger";
-  children: React.ReactNode;
-}
-
-export const Button: React.FC<ButtonProps>;
+export * from "./events/mfe-events-core.d.ts";
+export * from "./constants/config.d.ts";

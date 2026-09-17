@@ -14,7 +14,7 @@ describe("scripts/manifest", () => {
     expect(typeof manifest).toBe("object");
     if (manifest.demoService) {
       expect(manifest.demoService.port).toBe(5001);
-      expect(manifest.demoService.entry).toBe("/assets/remoteEntry.js");
+      expect(manifest.demoService.entry).toBe("/remoteEntry.js");
     }
   });
 

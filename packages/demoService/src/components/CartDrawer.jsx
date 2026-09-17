@@ -33,9 +33,9 @@ export default function CartDrawer() {
       sender: "CloudStore Remote",
     });
 
-    sendMfeEvent("mfe:order_placed", {
+    sendMfeEvent(MFE_EVENTS.ORDER_PLACED, {
       orderId: newOrderId,
-      total,
+      total: formatPrice(total),
       itemCount: totalCartCount,
       sender: "CloudStore Remote",
     });

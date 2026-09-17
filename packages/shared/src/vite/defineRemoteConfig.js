@@ -108,6 +108,7 @@ export function defineRemoteConfig(optionsOrFn) {
       server = {},
       preview = {},
       build = {},
+      cors = true,
       extend,
       ...restConfig
     } = rawOptions || {};
@@ -175,7 +176,9 @@ export function defineRemoteConfig(optionsOrFn) {
         port,
         strictPort: true,
         headers: {
-          "Access-Control-Allow-Origin": "*",
+          ...(cors
+            ? { "Access-Control-Allow-Origin": cors === true ? "*" : cors }
+            : {}),
           ...preview.headers,
         },
         ...preview,
@@ -185,6 +188,19 @@ export function defineRemoteConfig(optionsOrFn) {
         target: "esnext",
         minify: env.mode === "production",
         cssCodeSplit: false,
+        assetsDir: "",
+        rollupOptions: {
+          output: {
+            entryFileNames: (chunkInfo) =>
+              chunkInfo.name.includes("remoteEntry")
+                ? "[name].js"
+                : "assets/[name]-[hash].js",
+            chunkFileNames: "assets/[name]-[hash].js",
+            assetFileNames: "assets/[name]-[hash][extname]",
+            ...(build.rollupOptions?.output),
+          },
+          ...(build.rollupOptions),
+        },
         ...build,
       },
       ...restConfig,

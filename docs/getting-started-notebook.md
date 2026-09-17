@@ -95,19 +95,19 @@ Add the three domain services to `remotes.manifest.json`:
   "productService": {
     "port": 5001,
     "path": "/products",
-    "entry": "/assets/remoteEntry.js",
+    "entry": "/remoteEntry.js",
     "envVar": "VITE_PRODUCT_SERVICE_URL"
   },
   "orderService": {
     "port": 5002,
     "path": "/orders",
-    "entry": "/assets/remoteEntry.js",
+    "entry": "/remoteEntry.js",
     "envVar": "VITE_ORDER_SERVICE_URL"
   },
   "inventoryService": {
     "port": 5003,
     "path": "/inventory",
-    "entry": "/assets/remoteEntry.js",
+    "entry": "/remoteEntry.js",
     "envVar": "VITE_INVENTORY_SERVICE_URL"
   }
 }

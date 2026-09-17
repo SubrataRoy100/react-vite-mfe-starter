@@ -13,6 +13,8 @@
     "build:remotes": "turbo run build --filter=!host",
     "build:host": "turbo run build --filter=host",
     "lint": "turbo run lint",
+    "generate:types": "node scripts/generate-remotes-dts.js",
+    "pretypecheck": "node scripts/generate-remotes-dts.js",
     "typecheck": "turbo run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",

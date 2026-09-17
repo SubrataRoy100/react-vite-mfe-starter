@@ -11,6 +11,6 @@ export const MFE_CONFIG = {
     NAME: "demoService",
     PORT: 5001,
     DEFAULT_URL: "http://localhost:5001",
-    ENTRY_PATH: "/assets/remoteEntry.js",
+    ENTRY_PATH: "/remoteEntry.js",
   },
 };

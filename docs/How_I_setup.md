@@ -91,7 +91,7 @@ All remote micro-frontends are registered in a root configuration file:
   "demoService": {
     "port": 5001,
     "path": "/demo",
-    "entry": "/assets/remoteEntry.js",
+    "entry": "/remoteEntry.js",
     "envVar": "VITE_DEMO_SERVICE_URL"
   }
 }
@@ -421,7 +421,7 @@ Adding a new micro-frontend is manifest-driven and completely automated:
      "billingService": {
        "port": 5002,
        "path": "/billing",
-       "entry": "/assets/remoteEntry.js",
+       "entry": "/remoteEntry.js",
        "envVar": "VITE_BILLING_SERVICE_URL"
      }
    }

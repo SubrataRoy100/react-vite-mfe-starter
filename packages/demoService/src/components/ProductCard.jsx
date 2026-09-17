@@ -1,14 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useStore } from "../context/StoreContext";
 
 export default function ProductCard({ product }) {
   const { addToCart, formatPrice } = useStore();
   const [justAdded, setJustAdded] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   function handleAdd() {
     addToCart(product);
     setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 1200);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    timerRef.current = setTimeout(() => {
+      setJustAdded(false);
+      timerRef.current = null;
+    }, 1200);
   }
 
   const isOutOfStock = product.stock <= 0;
