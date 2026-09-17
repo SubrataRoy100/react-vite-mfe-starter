@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
 import { useMfeEventListener } from "@mfe/shared/adapters";
 
@@ -14,6 +14,16 @@ export default function MfeDevWidget({ title = "MFE Dev Testing & Diagnostics" }
   const [pingCount, setPingCount] = useState(0);
   const [lastMessage, setLastMessage] = useState(null);
   const [shouldCrash, setShouldCrash] = useState(false);
+  const mockPongTimerRef = useRef(null);
+
+  // Clear simulated pong timer on unmount
+  useEffect(() => {
+    return () => {
+      if (mockPongTimerRef.current) {
+        clearTimeout(mockPongTimerRef.current);
+      }
+    };
+  }, []);
 
   // Listen for responses or notifications from other MFEs (ignore self-broadcasts)
   useMfeEventListener(MFE_EVENTS.PONG, (detail) => {
@@ -39,6 +49,20 @@ export default function MfeDevWidget({ title = "MFE Dev Testing & Diagnostics" }
       count: nextCount,
       sender: "MfeDevWidget",
     });
+
+    if (!isHost) {
+      if (mockPongTimerRef.current) {
+        clearTimeout(mockPongTimerRef.current);
+      }
+      mockPongTimerRef.current = setTimeout(() => {
+        sendMfeEvent(MFE_EVENTS.PONG, {
+          message: "Simulated Standalone Host PONG",
+          sender: "Mock Host (Standalone)",
+          timestamp: Date.now(),
+        });
+        mockPongTimerRef.current = null;
+      }, 150);
+    }
   };
 
   return (

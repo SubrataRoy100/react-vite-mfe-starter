@@ -5,7 +5,7 @@ import { useMfeEventListener } from "@mfe/shared/adapters";
 
 export default function Navbar() {
   const location = useLocation();
-  const [cartCount, setCartCount] = useState(1); // starts synced with initial demo cart
+  const [cartCount, setCartCount] = useState(0);
   const [lastNotification, setLastNotification] = useState(null);
   const notificationTimerRef = useRef(null);
 
@@ -39,8 +39,10 @@ export default function Navbar() {
   });
 
   const isHome = location.pathname === "/";
-  const isDemo = location.pathname.startsWith("/demo") && !location.pathname.includes("settings");
-  const isSettings = location.pathname.includes("/demo/settings");
+  const isSettings =
+    location.pathname === "/demo/settings" ||
+    location.pathname.startsWith("/demo/settings/");
+  const isDemo = location.pathname.startsWith("/demo") && !isSettings;
 
   return (
     <header className="bg-slate-900 text-white sticky top-0 z-50 shadow-md">

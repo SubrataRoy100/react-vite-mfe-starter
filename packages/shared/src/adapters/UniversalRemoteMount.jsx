@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 
 /**
  * Universal Remote Mount Component.
@@ -68,12 +68,15 @@ export function UniversalRemoteMount({
   }, [stableKey, retryKey, internalRetry]);
 
   // Determine if remote module provides a Universal Mount contract or a React Component
-  const mountFn =
-    typeof remoteModule?.mount === "function"
-      ? remoteModule.mount
-      : typeof remoteModule?.default?.mount === "function"
-      ? remoteModule.default.mount
-      : null;
+  const mountFn = useMemo(() => {
+    const mountOwner =
+      typeof remoteModule?.mount === "function"
+        ? remoteModule
+        : typeof remoteModule?.default?.mount === "function"
+        ? remoteModule.default
+        : null;
+    return mountOwner ? mountOwner.mount.bind(mountOwner) : null;
+  }, [remoteModule]);
 
   const ReactComponent =
     !mountFn && remoteModule
@@ -85,20 +88,33 @@ export function UniversalRemoteMount({
       : null;
 
   const isMountedRef = useRef(false);
+  const prevRetryKeyRef = useRef(retryKey);
+  const prevInternalRetryRef = useRef(internalRetry);
 
   // Lifecycle management for Universal DOM mounts
   useEffect(() => {
     if (!mountFn || !containerRef.current) return;
 
     const container = containerRef.current;
+    const isRetry =
+      prevRetryKeyRef.current !== retryKey ||
+      prevInternalRetryRef.current !== internalRetry;
 
-    // Initial mount
-    if (!isMountedRef.current) {
+    // Initial mount or retry
+    if (!isMountedRef.current || isRetry) {
+      if (isMountedRef.current) {
+        cleanupInstance(instanceRef.current, remoteModule, container);
+        instanceRef.current = null;
+        isMountedRef.current = false;
+      }
+
       try {
         const result = mountFn(container, remoteProps);
         instanceRef.current = result;
         isMountedRef.current = true;
         prevPropsRef.current = remoteProps;
+        prevRetryKeyRef.current = retryKey;
+        prevInternalRetryRef.current = internalRetry;
       } catch (mountErr) {
         const resolvedErr = mountErr instanceof Error ? mountErr : new Error(String(mountErr));
         setError(resolvedErr);
@@ -133,7 +149,7 @@ export function UniversalRemoteMount({
         }
       }
     }
-  }, [mountFn, remoteProps, remoteName, remoteModule]);
+  }, [mountFn, remoteProps, remoteName, remoteModule, retryKey, internalRetry]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -182,11 +198,11 @@ function cleanupInstance(instance, remoteModule, container) {
     if (typeof instance === "function") {
       instance();
     } else if (instance && typeof instance.unmount === "function") {
-      instance.unmount(container);
+      instance.unmount.call(instance, container);
     } else if (typeof remoteModule?.unmount === "function") {
-      remoteModule.unmount(container);
+      remoteModule.unmount.call(remoteModule, container);
     } else if (typeof remoteModule?.default?.unmount === "function") {
-      remoteModule.default.unmount(container);
+      remoteModule.default.unmount.call(remoteModule.default, container);
     }
   } catch (err) {
     console.error("[UniversalRemoteMount] Error during unmount cleanup:", err);

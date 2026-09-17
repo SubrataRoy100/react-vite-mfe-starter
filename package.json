@@ -15,7 +15,7 @@
     "lint": "turbo run lint",
     "generate:types": "node scripts/generate-remotes-dts.js",
     "pretypecheck": "node scripts/generate-remotes-dts.js",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "node scripts/generate-remotes-dts.js && turbo run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

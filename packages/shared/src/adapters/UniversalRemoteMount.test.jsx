@@ -341,5 +341,46 @@ describe("Universal Adapters & Framework-Agnostic Support", () => {
       unmount();
       expect(mockCleanup).toHaveBeenCalled();
     });
+
+    it("forces clean unmount and remount on retryKey change even when loadRemote returns identical cached module object", async () => {
+      const mockCleanup = vi.fn();
+      const cachedModule = {
+        mount: vi.fn((container) => {
+          container.innerHTML = '<div data-testid="cached-module-content">Cached Content</div>';
+          return mockCleanup;
+        }),
+      };
+
+      // Always resolves to the exact same module reference (ES module cache simulation)
+      const loadRemote = vi.fn().mockResolvedValue(cachedModule);
+
+      const { rerender } = render(
+        <UniversalRemoteMount
+          loadRemote={loadRemote}
+          retryKey={0}
+          remoteName="CachedModuleRemote"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("cached-module-content")).toBeDefined();
+      });
+      expect(cachedModule.mount).toHaveBeenCalledTimes(1);
+      expect(mockCleanup).not.toHaveBeenCalled();
+
+      // Bump retryKey — loadRemote resolves to the exact same cachedModule object
+      rerender(
+        <UniversalRemoteMount
+          loadRemote={loadRemote}
+          retryKey={1}
+          remoteName="CachedModuleRemote"
+        />
+      );
+
+      await waitFor(() => {
+        expect(cachedModule.mount).toHaveBeenCalledTimes(2);
+      });
+      expect(mockCleanup).toHaveBeenCalledTimes(1);
+    });
   });
 });

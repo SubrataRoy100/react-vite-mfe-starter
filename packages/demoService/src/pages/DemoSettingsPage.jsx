@@ -143,7 +143,7 @@ export default function DemoSettingsPage() {
             <div className="flex items-center gap-3">
               <Button
                 variant="danger"
-                onClick={clearCart}
+                onClick={() => clearCart()}
                 disabled={totalCartCount === 0}
               >
                 Clear Cart Items

@@ -33,6 +33,8 @@ export interface RemoteConfigOptions extends Omit<UserConfig, "plugins" | "serve
   preview?: PreviewOptions;
   /** Build configuration overrides */
   build?: BuildOptions;
+  /** Configurable CORS policy for preview server headers (defaults to true / "*") */
+  cors?: boolean | string;
   /** Escape-hatch hook to mutate or return a modified final Vite UserConfig */
   extend?: (config: UserConfig, env: ConfigEnv) => UserConfig | void;
 }

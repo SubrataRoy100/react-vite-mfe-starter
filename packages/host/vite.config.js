@@ -4,6 +4,7 @@ import federation from "@originjs/vite-plugin-federation";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
+import { DEFAULT_SHARED_DEPS } from "@mfe/shared/vite";
 
 // Single source of truth for every remote micro-frontend in the workspace.
 // Adding a new remote to the manifest is enough to wire it into the host's
@@ -36,11 +37,7 @@ export default defineConfig(({ mode }) => ({
     federation({
       name: "host",
       remotes,
-      shared: {
-        react: { singleton: true, requiredVersion: "^19.0.0" },
-        "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
-        "react-router": { singleton: true, requiredVersion: "^8.0.0" },
-      },
+      shared: DEFAULT_SHARED_DEPS,
     }),
   ],
   server: {

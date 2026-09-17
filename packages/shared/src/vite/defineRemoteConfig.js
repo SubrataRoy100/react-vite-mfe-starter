@@ -22,6 +22,7 @@ export const FRAMEWORK_SHARED_DEPS = {
     "solid-js": { singleton: true },
   },
   vanilla: {},
+  none: {},
 };
 
 /**

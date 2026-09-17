@@ -178,7 +178,7 @@ export default function CartDrawer() {
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>{shipping === 0 ? "FREE (Over $200)" : formatPrice(shipping)}</span>
+                  <span>{shipping === 0 && subtotal > 200 ? "FREE (Over $200)" : shipping === 0 ? "FREE" : formatPrice(shipping)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold text-slate-900 pt-2 border-t border-slate-200">
                   <span>Total</span>

@@ -132,13 +132,18 @@ export function StoreProvider({ children }) {
   }, []);
 
   const clearCart = useCallback(
-    (silent = false) => {
+    (silentOrOptions = false) => {
+      const isSilent =
+        typeof silentOrOptions === "boolean"
+          ? silentOrOptions
+          : Boolean(silentOrOptions && typeof silentOrOptions === "object" && silentOrOptions.silent);
+
       setCart([]);
       sendMfeEvent(MFE_EVENTS.CART_UPDATE, {
         count: 0,
         sender: "CloudStore Remote",
       });
-      if (!silent) {
+      if (!isSilent) {
         sendMfeEvent(MFE_EVENTS.NOTIFICATION, {
           message: "Cart cleared",
           sender: "CloudStore Remote",

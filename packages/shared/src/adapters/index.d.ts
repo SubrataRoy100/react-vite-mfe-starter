@@ -7,6 +7,8 @@ export interface MfeLifecycle {
 
 export interface UniversalRemoteMountProps {
   loadRemote: () => Promise<any>;
+  remoteKey?: string;
+  retryKey?: number | string;
   props?: Record<string, any>;
   fallback?: React.ReactNode;
   className?: string;

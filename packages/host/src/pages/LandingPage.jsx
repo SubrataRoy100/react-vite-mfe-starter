@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router";
 import RetriableRemote from "../components/RetriableRemote";
-import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
+import { MFE_EVENTS } from "@mfe/shared";
 import { useMfeEventListener } from "@mfe/shared/adapters";
 
 const loadDevWidget = () => import("demoService/MfeDevWidget");
@@ -29,11 +29,6 @@ function LandingPage() {
       },
       ...prev.slice(0, 5),
     ]);
-
-    // Send automated pong response
-    sendMfeEvent(MFE_EVENTS.PONG, {
-      message: "Host received your ping successfully!",
-    });
   });
 
   // Listen for Cross-MFE Cart & Notification events

@@ -4,11 +4,22 @@ import LoadingFallback from "./components/LoadingFallback";
 
 import Navbar from "./components/Navbar";
 import RetriableRemote from "./components/RetriableRemote";
+import { sendMfeEvent, MFE_EVENTS } from "@mfe/shared";
+import { useMfeEventListener } from "@mfe/shared/adapters";
 
 const LandingPage = React.lazy(() => import("./pages/LandingPage"));
 const loadDemoServiceApp = () => import("demoService/App");
 
 function App() {
+  // Global Host Shell automated responder for Cross-MFE Pings across all routes (/, /demo, etc.)
+  useMfeEventListener(MFE_EVENTS.PING, (detail) => {
+    sendMfeEvent(MFE_EVENTS.PONG, {
+      message: "Host received your ping successfully!",
+      pingSender: detail?.sender,
+      timestamp: Date.now(),
+    });
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />

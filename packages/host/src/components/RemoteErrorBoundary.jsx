@@ -8,7 +8,7 @@ import { ErrorBoundary } from "react-error-boundary";
 function RemoteErrorFallback({ error, resetErrorBoundary, remoteName = "Remote Service", serviceName }) {
   const devTarget =
     serviceName ||
-    (remoteName === "Demo Service Module" || remoteName === "MfeDevWidget" || remoteName === "Demo Service"
+    (remoteName === "Demo Service Module" || remoteName === "Demo Service" || remoteName === "Federated Dev Widget"
       ? "demoService"
       : remoteName.toLowerCase().replace(/\s+/g, ""));
 
