@@ -148,7 +148,16 @@ export declare function useMfeEventListener<T = MfeEventPayload>(
     // 3. dist/index.d.ts
     const rootIndexDts = `export * from "./events/index.js";
 export * from "./constants/index.js";
-export * from "./adapters/index.js";
+export {
+  UniversalRemoteMount,
+  normalizeRemoteModule,
+  createReactMount,
+  createVanillaMount,
+  type MfeLifecycle,
+  type MfeLifecycleInstance,
+  type DualModeReactMount,
+  type UniversalRemoteMountProps,
+} from "./adapters/index.js";
 export * from "./components/Button.js";
 `;
     writeFileSync(resolve(distDir, "index.d.ts"), rootIndexDts, "utf-8");
