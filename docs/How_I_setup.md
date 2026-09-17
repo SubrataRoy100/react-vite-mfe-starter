@@ -299,7 +299,7 @@ When embedded at `http://localhost:5000/demo/*`, it navigates to `/demo/settings
 
 ## 5. Cross-MFE Communication Layer (Event Bus)
 
-Both applications import decoupled event utilities from `@mfe/shared`:
+Both applications import decoupled event utilities from `@subrataroy100/mfe-shared`:
 
 ```javascript
 export const MFE_EVENTS = {
@@ -409,11 +409,11 @@ Adding a new micro-frontend is manifest-driven and completely automated:
    ```
 2. **Install Core Dependencies**:
    ```bash
-   pnpm --filter billingService add react react-dom react-router @mfe/shared
+   pnpm --filter billingService add react react-dom react-router @subrataroy100/mfe-shared
    pnpm --filter billingService add -D vite @vitejs/plugin-react @originjs/vite-plugin-federation @tailwindcss/vite tailwindcss oxlint
    ```
 3. **Configure `vite.config.js`**:
-   Use `defineRemoteConfig` from `@mfe/shared/vite`, specifying `name: "billingService"` and exposing `./App`. Port, Tailwind, React 19 singletons, and `federation-css-fix` are configured automatically.
+   Use `defineRemoteConfig` from `@subrataroy100/mfe-shared/vite`, specifying `name: "billingService"` and exposing `./App`. Port, Tailwind, React 19 singletons, and `federationCssFixPlugin` are configured automatically.
 4. **Register in `remotes.manifest.json`**:
    ```json
    {

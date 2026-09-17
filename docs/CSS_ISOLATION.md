@@ -12,6 +12,7 @@ By default, the starter project configures `@tailwindcss/vite` across both the h
 
 - **Advantage**: Shared design tokens (colors, spacing, typography) and zero runtime CSS-in-JS overhead.
 - **Trade-off**: Remotes inject CSS `<link>` tags into `document.head`. Because styles are globally scoped to the document, an unqualified selector (e.g. `button { margin: 0 }` or utility collisions) can influence siblings or the host container.
+- **Automatic Runtime Injection**: `defineRemoteConfig` from `@subrataroy100/mfe-shared/vite` includes `federationCssFixPlugin`, which automatically discovers remote CSS chunks at build time and injects `<link rel="stylesheet">` tags into `document.head` when `remoteEntry.js` loads. This guarantees remote styles are present even when dynamically imported.
 
 For many enterprise applications with a unified design system, this is acceptable. When teams need strict CSS isolation, choose one of the three strategies below.
 
@@ -19,14 +20,33 @@ For many enterprise applications with a unified design system, this is acceptabl
 
 ## 2. Opt-in Isolation Strategies
 
-### Strategy A: Shadow DOM Encapsulation (Recommended for Non-React & Vanilla)
+### Strategy A: Shadow DOM Encapsulation (Built-in Support)
 
 Shadow DOM guarantees 100% style encapsulation by preventing external styles from penetrating the shadow boundary, and internal styles from leaking out.
 
-Using `createVanillaMount`, you can attach a shadow root:
+#### 1. Declarative Host Mounting via `<UniversalRemoteMount />`
+`UniversalRemoteMount` from `@subrataroy100/mfe-shared/adapters` supports an optional `shadowDom` prop:
+
+```jsx
+import { UniversalRemoteMount } from "@subrataroy100/mfe-shared/adapters";
+
+export function RemoteContainer() {
+  return (
+    <UniversalRemoteMount
+      module={() => import("cartRemote/App")}
+      props={{ theme: "dark" }}
+      shadowDom={{ mode: "open" }} // Automatically mounts inside shadow root
+      fallback={<div>Loading remote...</div>}
+    />
+  );
+}
+```
+
+#### 2. Imperative Vanilla JS Mounting via `createVanillaMount`
+Using `createVanillaMount`, you can also attach a shadow root manually:
 
 ```javascript
-import { createVanillaMount } from "@mfe/shared/adapters";
+import { createVanillaMount } from "@subrataroy100/mfe-shared/adapters";
 
 export const { mount } = createVanillaMount((container, props) => {
   // Attach shadow root if not already present

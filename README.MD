@@ -20,8 +20,10 @@ mfe/ (Root Workspace)
 ├── packages/
 │   ├── shared/                   # Shared Library (@subrataroy100/mfe-shared)
 │   │   ├── src/
+│   │   │   ├── adapters/         # Universal Remote Mount, Shadow DOM, and dual-mode mounts
+│   │   │   ├── events/           # Scoped Event Bus, pure JS core, and React hooks
+│   │   │   ├── vite/             # Centralized Vite federation preset + CSS auto-injection
 │   │   │   ├── components/       # Shared UI primitives (Button)
-│   │   │   ├── events/           # Decoupled Cross-MFE Event Bus (mfe-events.js)
 │   │   │   ├── constants/        # Shared ports, origins, and configuration (config.js)
 │   │   │   └── index.js          # Barrel export
 │   │   └── package.json
@@ -160,6 +162,70 @@ To eliminate "any" types across lazy-loaded remote boundaries, ambient contracts
 pnpm typecheck
 ```
 to validate type contracts across all packages without blocking rapid JavaScript iteration.
+
+### 6. Production Library Usage (`@subrataroy100/mfe-shared`)
+The shared core is published on npm as [`@subrataroy100/mfe-shared`](https://www.npmjs.com/package/@subrataroy100/mfe-shared) and can be used in any independent project:
+
+```bash
+npm install @subrataroy100/mfe-shared
+```
+
+#### A. Remote Vite Setup with Automatic CSS Injection:
+```javascript
+import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
+
+export default defineRemoteConfig({
+  name: "cartRemote",
+  port: 5001,
+  framework: "react",
+  exposes: {
+    "./App": "./src/App.jsx",
+  },
+});
+```
+
+#### B. Expose Dual-Mode Component in Remote:
+```jsx
+import { createReactMount } from "@subrataroy100/mfe-shared/adapters";
+
+function CartApp({ theme }) {
+  return <div className={`cart ${theme}`}>Cart Content</div>;
+}
+
+// Usable directly in JSX (<CartApp />) AND imperatively (CartApp.mount(domNode, props))
+export default createReactMount(CartApp);
+```
+
+#### C. Consume in Host Shell with Shadow DOM Isolation:
+```jsx
+import { UniversalRemoteMount } from "@subrataroy100/mfe-shared/adapters";
+
+export function HostView() {
+  return (
+    <UniversalRemoteMount
+      module={() => import("cartRemote/App")}
+      props={{ theme: "dark" }}
+      shadowDom={{ mode: "open" }} // Complete style isolation
+      fallback={<div>Loading remote...</div>}
+    />
+  );
+}
+```
+
+#### D. Scoped Cross-MFE Event Bus:
+```javascript
+import { createMfeEventBus } from "@subrataroy100/mfe-shared/events";
+
+const bus = createMfeEventBus({ sender: "cart-remote", namespace: "team-commerce" });
+
+// Dispatch event
+bus.send("cart:updated", { count: 3 });
+
+// Subscribe in React with automatic lifecycle cleanup
+bus.useListener("cart:updated", (event) => {
+  console.log("Cart count:", event.detail.data.count);
+});
+```
 
 ---
 

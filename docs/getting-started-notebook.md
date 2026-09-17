@@ -56,7 +56,7 @@ graph TB
             Inventory[" InventoryService (:5003)<br/>Route: /inventory/*"]
         end
 
-        EventBus["Decoupled DOM Event Bus (@mfe/shared)<br/>cart:item_added / inventory:updated"]
+        EventBus["Decoupled DOM Event Bus (@subrataroy100/mfe-shared)<br/>cart:item_added / inventory:updated"]
     end
 
     Router -->|Mount /products/*| Boundary
@@ -118,10 +118,10 @@ Add the three domain services to `remotes.manifest.json`:
 
 ### 1.2 Configure Remote Federation Provider (`packages/productService/vite.config.js`)
 
-Each remote uses the high-level preset from `@mfe/shared/vite` to expose its root sub-app and components:
+Each remote uses the high-level preset from `@subrataroy100/mfe-shared/vite` to expose its root sub-app and components:
 
 ```javascript
-import { defineRemoteConfig } from "@mfe/shared/vite";
+import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
 
 export default defineRemoteConfig({
   name: "productService",
@@ -285,7 +285,7 @@ export default function App() {
 
 ## 5. Hands-On Step 3: Cross-Boundary Communication (Event Bus)
 
-Micro-frontends should never share global state stores (Redux, Zustand) across independent deployments. Doing so introduces tight coupling and memory leaks. Instead, communicate using standard browser `CustomEvents` with our lightweight, lifecycle-safe `@mfe/shared` library.
+Micro-frontends should never share global state stores (Redux, Zustand) across independent deployments. Doing so introduces tight coupling and memory leaks. Instead, communicate using standard browser `CustomEvents` with our lightweight, lifecycle-safe `@subrataroy100/mfe-shared` library.
 
 ### 5.1 Emitter: Dispatching Events (`ProductCard.jsx`)
 
@@ -293,7 +293,7 @@ When a user clicks "Add to Cart" inside the `productService` remote:
 
 ```jsx
 import React from "react";
-import { sendMfeEvent } from "@mfe/shared";
+import { sendMfeEvent } from "@subrataroy100/mfe-shared";
 
 export default function ProductCard({ product }) {
   const handleAddToCart = () => {
@@ -331,7 +331,7 @@ The Host Shell and `orderService` listen for cart updates using `useMfeEventList
 
 ```jsx
 import React, { useState } from "react";
-import { useMfeEventListener } from "@mfe/shared";
+import { useMfeEventListener } from "@subrataroy100/mfe-shared";
 
 export function CartHeaderWidget() {
   const [cartItems, setCartItems] = useState([]);

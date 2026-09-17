@@ -218,8 +218,9 @@ import { LoadingFallback } from "./components/LoadingFallback";
   element={
     <RemoteErrorBoundary remoteName="Vue Sub-App">
       <UniversalRemoteMount
-        loadRemote={() => import("vueService/mount")}
+        module={() => import("vueService/mount")}
         props={{ userId: currentUser.id }}
+        shadowDom={{ mode: "open" }} // Optional: full CSS encapsulation
         fallback={<LoadingFallback message="Loading Vue Micro-App..." />}
       />
     </RemoteErrorBoundary>
@@ -231,38 +232,65 @@ import { LoadingFallback } from "./components/LoadingFallback";
 
 ## 4. Cross-MFE Communication Across Frameworks
 
-The event bus in `@subrataroy100/mfe-shared/events` uses pure native DOM `CustomEvent` dispatching:
+The event bus in `@subrataroy100/mfe-shared/events` (and zero-dependency `@subrataroy100/mfe-shared/events/core`) uses pure native DOM `CustomEvent` dispatching with scoped namespacing:
 
-* **Dispatching from any framework**:
-  ```javascript
-  import { sendMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared/events";
+### A. Scoped Event Bus (Recommended)
 
-  sendMfeEvent(MFE_EVENTS.NOTIFICATION, {
-    message: "Action completed in Vue/Svelte remote",
+```javascript
+// In Vue, Svelte, or Vanilla (Zero React dependencies):
+import { createMfeEventBus } from "@subrataroy100/mfe-shared/events/core";
+
+const cartBus = createMfeEventBus({
+  sender: "vue-cart-widget",
+  namespace: "team-commerce"
+});
+
+// Dispatch namespaced event ('team-commerce:cart:updated')
+cartBus.send("cart:updated", { total: 49.99, count: 2 });
+
+// Listen with auto-unsubscribe:
+const unsubscribe = cartBus.listen("cart:updated", (event) => {
+  console.log("Cart payload:", event.detail.data);
+  console.log("Sender:", event.detail.sender);
+});
+```
+
+### B. In React Components
+
+```jsx
+import React from "react";
+import { createMfeEventBus } from "@subrataroy100/mfe-shared/events";
+
+const cartBus = createMfeEventBus({
+  sender: "react-header",
+  namespace: "team-commerce"
+});
+
+export function HeaderCartBadge() {
+  const [cart, setCart] = React.useState({ count: 0 });
+
+  // Scoped hook: automatically subscribes and cleans up on unmount
+  cartBus.useListener("cart:updated", (event) => {
+    setCart(event.detail.data);
   });
-  ```
 
-* **Listening in non-React frameworks (Vanilla, Vue, Svelte)**:
-  ```javascript
-  import { listenMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared/events";
+  return <div>Cart ({cart.count})</div>;
+}
+```
 
-  // Returns an unsubscribe function:
-  const unsubscribe = listenMfeEvent(MFE_EVENTS.PING, (detail) => {
-    console.log("Ping received:", detail);
-  });
+### C. Global Events (Legacy & Broadcast)
 
-  // Call on component unmount:
-  unsubscribe();
-  ```
+```javascript
+import { sendMfeEvent, listenMfeEvent, MFE_EVENTS } from "@subrataroy100/mfe-shared/events";
 
-* **Listening in React**:
-  ```javascript
-  import { useMfeEventListener, MFE_EVENTS } from "@subrataroy100/mfe-shared/adapters";
+// Dispatch globally:
+sendMfeEvent(MFE_EVENTS.PING, { message: "Hello!" });
 
-  useMfeEventListener(MFE_EVENTS.PING, (detail) => {
-    console.log("Ping received:", detail);
-  });
-  ```
+// Listen anywhere:
+const unsubscribe = listenMfeEvent(MFE_EVENTS.PING, (payload) => {
+  console.log("Ping received:", payload);
+});
+```
 
 ---
 
