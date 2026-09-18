@@ -129,7 +129,7 @@ export function generateRemotesRegistry() {
   ];
 
   for (const [name, cfg] of entries) {
-    if (!cfg.path) continue;
+    const cleanPath = cfg.path.replace(/\/\*$/, "");
     const normalizedPath = cfg.path.endsWith("/*")
       ? cfg.path
       : `${cfg.path.replace(/\/$/, "")}/*`;
@@ -138,6 +138,8 @@ export function generateRemotesRegistry() {
       code.push(`  {`);
       code.push(`    name: ${JSON.stringify(name)},`);
       code.push(`    path: ${JSON.stringify(normalizedPath)},`);
+      code.push(`    urlPath: ${JSON.stringify(cleanPath)},`);
+      code.push(`    port: ${JSON.stringify(cfg.port || null)},`);
       code.push(`    Component: () => (`);
       code.push(`      <UniversalRemoteMount`);
       code.push(`        loadRemote={() => import(/* @vite-ignore */ ${JSON.stringify(`${name}/App`)})}`);
@@ -150,6 +152,8 @@ export function generateRemotesRegistry() {
       code.push(`  {`);
       code.push(`    name: ${JSON.stringify(name)},`);
       code.push(`    path: ${JSON.stringify(normalizedPath)},`);
+      code.push(`    urlPath: ${JSON.stringify(cleanPath)},`);
+      code.push(`    port: ${JSON.stringify(cfg.port || null)},`);
       code.push(`    Component: React.lazy(() => import(${JSON.stringify(`${name}/App`)})),`);
       code.push(`    framework: "react",`);
       code.push(`  },`);

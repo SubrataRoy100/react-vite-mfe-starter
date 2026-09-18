@@ -9,12 +9,16 @@ export const remoteRoutes = [
   {
     name: "marketingMfe",
     path: "/landing/*",
+    urlPath: "/landing",
+    port: 5002,
     Component: React.lazy(() => import("marketingMfe/App")),
     framework: "react",
   },
   {
     name: "authMfe",
     path: "/auth/*",
+    urlPath: "/auth",
+    port: 5003,
     Component: React.lazy(() => import("authMfe/App")),
     framework: "react",
   },
