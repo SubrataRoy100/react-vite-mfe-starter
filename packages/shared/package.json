@@ -1,6 +1,6 @@
 {
   "name": "@subrataroy100/mfe-shared",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Cross-MFE event bus, Universal Adapters, and centralized Vite federation preset",
   "type": "module",
   "main": "./dist/index.cjs",
