@@ -34,6 +34,7 @@ describe("defineRemoteConfig", () => {
     let capturedFederationConfig = null;
     const configFn = defineRemoteConfig({
       name: "billingService",
+      engine: "originjs",
       port: 5002,
       shared: {
         zustand: { singleton: true },
@@ -47,9 +48,14 @@ describe("defineRemoteConfig", () => {
     });
 
     const resolved = configFn({ mode: "production", command: "build" });
-    const federationPlugin = resolved.plugins.find(
-      (p) => p && p.name === "originjs:federation"
-    );
+    const federationPlugin = resolved.plugins
+      .flat(Infinity)
+      .find(
+        (p) =>
+          p &&
+          (p.name === "originjs:federation" ||
+            (typeof p.name === "string" && p.name.includes("module-federation")))
+      );
     expect(federationPlugin).toBeDefined();
 
     // Check custom plugins are included
@@ -107,6 +113,7 @@ describe("defineRemoteConfig", () => {
   it("supports framework: 'vanilla' without framework plugins", () => {
     const configFn = defineRemoteConfig({
       name: "vanillaService",
+      engine: "originjs",
       framework: "vanilla",
       port: 5004,
       tailwind: false,

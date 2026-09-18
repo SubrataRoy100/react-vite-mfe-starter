@@ -1,14 +1,16 @@
 {
   "marketingMfe": {
     "port": 5002,
-    "path": "/marketingMfe",
+    "path": "/landing",
     "entry": "/remoteEntry.js",
-    "envVar": "VITE_MARKETING_MFE_URL"
+    "envVar": "VITE_MARKETING_MFE_URL",
+    "framework": "react"
   },
   "authMfe": {
     "port": 5003,
-    "path": "/authMfe",
+    "path": "/auth",
     "entry": "/remoteEntry.js",
-    "envVar": "VITE_AUTH_MFE_URL"
+    "envVar": "VITE_AUTH_MFE_URL",
+    "framework": "react"
   }
 }

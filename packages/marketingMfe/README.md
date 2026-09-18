@@ -1,16 +1,28 @@
-# React + Vite
+# Marketing Micro-Frontend (`packages/marketingMfe`)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The marketing and landing micro-frontend service for the CampusMind Web platform.
 
-Currently, two official plugins are available:
+## Overview
+- **Port**: `5002`
+- **Route Prefix**: `/landing`
+- **Exposed Modules**: `./App`
+- **Framework**: React 19 + React Router v8 + Tailwind CSS v4
+- **Federation Engine**: `@module-federation/vite` via `defineRemoteConfig`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Features
+- Independent standalone execution at `http://localhost:5002`
+- Federated mounting in Host container at `http://localhost:5000/landing`
+- Cross-MFE Event Bus integration (`mfe:ping` / `mfe:pong`)
+- Autonomous relative routing (`/` and sub-paths)
+- Localized error boundaries and loading fallbacks
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Development & Scripts
+- `pnpm --filter marketingMfe dev`: Runs standalone dev server with HMR.
+- `pnpm --filter marketingMfe build`: Builds remote production bundle including `remoteEntry.js`.
+- `pnpm --filter marketingMfe preview`: Serves production preview server on port 5002.
+- `pnpm --filter marketingMfe lint`: Runs `oxlint`.
+- `pnpm --filter marketingMfe typecheck`: Type check with `tsc --noEmit`.

@@ -66,6 +66,7 @@
     "prepublishOnly": "tsup"
   },
   "peerDependencies": {
+    "@module-federation/vite": ">=1.0.0",
     "@originjs/vite-plugin-federation": "^1.4.1",
     "@tailwindcss/vite": "^4.0.0",
     "@vitejs/plugin-react": "^6.0.0",
@@ -74,6 +75,9 @@
     "vite": ">=5.0.0"
   },
   "peerDependenciesMeta": {
+    "@module-federation/vite": {
+      "optional": true
+    },
     "react": {
       "optional": true
     },

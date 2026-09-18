@@ -7,6 +7,7 @@ import {
   getBuildFilterArgs,
   getDevCommands,
 } from "./manifest.js";
+import { checkAndFreePorts } from "./port-guard.js";
 
 const action = process.argv[2] || "dev";
 const manifest = loadManifest();
@@ -60,7 +61,24 @@ switch (action) {
     break;
   }
 
+  case "clean-ports":
+  case "clean:ports": {
+    const ports = [5000, ...Object.values(manifest).map((c) => c.port).filter(Boolean)];
+    console.log(`[orchestrate] Checking and freeing ports: ${ports.join(", ")}...`);
+    checkAndFreePorts(ports, true);
+    console.log(`[orchestrate] All ports free.`);
+    break;
+  }
+
   case "dev": {
+    // 1. Run pre-flight port guard
+    const portsToCheck = [
+      5000,
+      ...Object.values(activeManifest).map((c) => c.port).filter(Boolean),
+    ];
+    console.log(`[orchestrate] Running pre-flight port guard on: ${portsToCheck.join(", ")}...`);
+    checkAndFreePorts(portsToCheck, true);
+
     if (activeRemotes.length > 0) {
       const filterArgs = getBuildFilterArgs(activeManifest).join(" ");
       console.log(`Performing initial build for remotes: ${activeRemotes.join(", ")}...`);

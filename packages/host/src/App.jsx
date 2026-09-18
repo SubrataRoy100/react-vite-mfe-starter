@@ -3,9 +3,10 @@ import { Route, Routes } from "react-router";
 import LoadingFallback from "./components/LoadingFallback";
 import RemoteErrorBoundary from "./components/RemoteErrorBoundary";
 
+import { remoteRoutes } from "./remotesRegistry.jsx";
+
 const LandingPage = React.lazy(() => import("./pages/LandingPage"));
-const MarketingMfeApp = React.lazy(() => import("marketingMfe/App"));
-const AuthMfeApp = React.lazy(() => import("authMfe/App"));
+
 function App() {
   return (
     <Routes>
@@ -20,30 +21,23 @@ function App() {
           </React.Suspense>
         }
       />
-      <Route
-        path="/landing/*"
-        element={
-          <RemoteErrorBoundary remoteName="Marketing">
-            <React.Suspense
-              fallback={<LoadingFallback message="Loading Landing Page...." />}
-            >
-              <MarketingMfeApp />
-            </React.Suspense>
-          </RemoteErrorBoundary>
-        }
-      />
-      <Route
-        path="/auth/*"
-        element={
-          <RemoteErrorBoundary remoteName="Authentication">
-            <React.Suspense
-              fallback={<LoadingFallback message="Loading Authentication..." />}
-            >
-              <AuthMfeApp />
-            </React.Suspense>
-          </RemoteErrorBoundary>
-        }
-      />
+
+      {/* Manifest-Driven Dynamic Remote Routes */}
+      {remoteRoutes.map(({ name, path, Component }) => (
+        <Route
+          key={name}
+          path={path}
+          element={
+            <RemoteErrorBoundary remoteName={name}>
+              <React.Suspense
+                fallback={<LoadingFallback message={`Loading ${name}...`} />}
+              >
+                <Component />
+              </React.Suspense>
+            </RemoteErrorBoundary>
+          }
+        />
+      ))}
     </Routes>
   );
 }

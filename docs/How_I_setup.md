@@ -14,7 +14,7 @@
 1. [Overview](#1-overview)
 2. [Workspace Initialization & Dependencies](#2-workspace-initialization--dependencies)
 3. [Host Application Configuration (`packages/host`)](#3-host-application-configuration-packageshost)
-4. [Remote Application Configuration (`packages/demoService`)](#4-remote-application-configuration-packagesdemoservice)
+4. [Remote Application Configuration (`packages/marketingMfe`, `packages/authMfe`)](#4-remote-application-configuration-packagesmarketingmfe-packagesauthmfe)
 5. [Cross-MFE Communication Layer (Event Bus)](#5-cross-mfe-communication-layer-event-bus)
 6. [Development Testing Playground Feature](#6-development-testing-playground-feature)
 7. [How to Run, Build, and Lint](#7-how-to-run-build-and-lint)
@@ -26,12 +26,13 @@
 ## 1. Overview
 
 This monorepo demonstrates a production-grade **Micro-Frontend Architecture** using modern frontend tooling:
-- **pnpm Workspaces**: Lightning-fast monorepo package management with a single root lockfile.
-- **Vite Module Federation** (`@originjs/vite-plugin-federation`): Dynamic runtime module sharing.
-- **React 19 & React Router v8**: Modern component architecture and nested routing.
+- **pnpm Workspaces & Turborepo**: Lightning-fast monorepo package management and cached task pipelines.
+- **Module Federation 2.0** (`@module-federation/vite`): Modern Vite 8 / Rolldown compatible runtime module sharing.
+- **React 19 & React Router v8**: Modern component architecture and dynamic routing.
 - **Tailwind CSS v4**: Utility-first styling with `@tailwindcss/vite`.
 - **Fault-Tolerant Shell**: Independent `<RemoteErrorBoundary>` isolation preventing host shell crashes.
 - **Decoupled Cross-MFE Event Bus**: Standard browser `CustomEvents` for loose communication without shared state libraries.
+- **Port Guard**: Automated pre-flight port hygiene preventing ghost Node process collisions.
 
 ---
 
@@ -57,8 +58,10 @@ In root `package.json`:
   "name": "mfe",
   "version": "1.0.0",
   "private": true,
-  "description": "Micro-Frontend Monorepo Starter Framework with Vite Module Federation and React 19",
+  "description": "Micro-Frontend Monorepo Starter Framework with Module Federation and React 19",
   "scripts": {
+    "clean:ports": "node scripts/port-guard.js",
+    "mfe:create": "node scripts/create-remote.js",
     "remotes:list": "node scripts/orchestrate.js list",
     "dev:remotes-build": "node scripts/orchestrate.js build-remotes",
     "dev:host": "pnpm --filter host dev",
@@ -66,14 +69,14 @@ In root `package.json`:
     "build:remotes": "node scripts/orchestrate.js build-remotes",
     "build:host": "pnpm --filter host build",
     "build": "node scripts/orchestrate.js build",
-    "lint": "pnpm -r lint",
+    "lint": "turbo run lint",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "preview": "pnpm --filter host preview"
   },
   "devDependencies": {
-    "@originjs/vite-plugin-federation": "^1.4.1",
+    "@module-federation/vite": "^1.11.1",
     "@testing-library/react": "^16.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.1",
@@ -88,11 +91,19 @@ In root `package.json`:
 All remote micro-frontends are registered in a root configuration file:
 ```json
 {
-  "demoService": {
-    "port": 5001,
-    "path": "/demo",
+  "marketingMfe": {
+    "port": 5002,
+    "path": "/landing",
     "entry": "/remoteEntry.js",
-    "envVar": "VITE_DEMO_SERVICE_URL"
+    "envVar": "VITE_MARKETING_MFE_URL",
+    "framework": "react"
+  },
+  "authMfe": {
+    "port": 5003,
+    "path": "/auth",
+    "entry": "/remoteEntry.js",
+    "envVar": "VITE_AUTH_MFE_URL",
+    "framework": "react"
   }
 }
 ```
@@ -104,14 +115,15 @@ All remote micro-frontends are registered in a root configuration file:
 The Host application (port `5000`) serves as the orchestration shell.
 
 ### 3.1 Host `vite.config.js`
-Dynamically reads `remotes.manifest.json` and configures shared singletons to prevent multiple React instances:
+Dynamically reads `remotes.manifest.json` and configures Module Federation 2.0 with shared singletons to prevent multiple React instances:
 ```javascript
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import federation from "@originjs/vite-plugin-federation";
+import * as mf from "@module-federation/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
+import { DEFAULT_SHARED_DEPS } from "@subrataroy100/mfe-shared/vite";
 
 const manifestPath = fileURLToPath(
   new URL("../../remotes.manifest.json", import.meta.url)
@@ -119,28 +131,38 @@ const manifestPath = fileURLToPath(
 const remotesManifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
 const remotes = Object.fromEntries(
-  Object.entries(remotesManifest).map(([name, cfg]) => [
-    name,
-    process.env[cfg.envVar] ||
-      `http://localhost:${cfg.port}${cfg.entry}`,
-  ])
+  Object.entries(remotesManifest).map(([name, cfg]) => {
+    const fallbackUrl =
+      process.env[cfg.envVar] || `http://localhost:${cfg.port}${cfg.entry}`;
+    return [
+      name,
+      {
+        type: "module",
+        name,
+        entry: fallbackUrl,
+        entryGlobalName: name,
+        shareScope: "default",
+      },
+    ];
+  })
 );
 
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
-    federation({
+    mf.federation({
       name: "host",
       remotes,
-      shared: {
-        react: { singleton: true, requiredVersion: "^19.0.0" },
-        "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
-        "react-router": { singleton: true, requiredVersion: "^8.0.0" },
-      },
+      dts: false,
+      shared: DEFAULT_SHARED_DEPS,
     }),
   ],
   server: {
+    port: 5000,
+    strictPort: true,
+  },
+  preview: {
     port: 5000,
     strictPort: true,
   },
@@ -178,16 +200,15 @@ createRoot(document.getElementById("root")).render(
 );
 ```
 
-### 3.3 Resilient Remote Route Isolation (`src/App.jsx`)
-Each remote is wrapped in `<RemoteErrorBoundary>` and `<LoadingFallback>`:
+### 3.3 Zero-Touch Resilient Remote Route Isolation (`src/App.jsx`)
+Routes are dynamically resolved from `src/remotesRegistry.jsx` (auto-generated from `remotes.manifest.json`), with each remote wrapped in `<RemoteErrorBoundary>` and `<LoadingFallback>`:
 ```jsx
 import React from "react";
 import { Route, Routes } from "react-router";
 import RemoteErrorBoundary from "./components/RemoteErrorBoundary";
 import LoadingFallback from "./components/LoadingFallback";
-
-const DemoApp = React.lazy(() => import("demoService/App"));
-const LandingPage = React.lazy(() => import("./pages/LandingPage"));
+import LandingPage from "./pages/LandingPage";
+import { REMOTES_REGISTRY } from "./remotesRegistry";
 
 function App() {
   return (
@@ -195,21 +216,27 @@ function App() {
       <Route
         path="/"
         element={
-          <React.Suspense fallback={<LoadingFallback message="Loading Host..." />}>
+          <React.Suspense fallback={<LoadingFallback message="Loading CampusMind Shell..." />}>
             <LandingPage />
           </React.Suspense>
         }
       />
-      <Route
-        path="/demo/*"
-        element={
-          <RemoteErrorBoundary remoteName="Demo Service Module">
-            <React.Suspense fallback={<LoadingFallback message="Streaming Demo Service..." />}>
-              <DemoApp />
-            </React.Suspense>
-          </RemoteErrorBoundary>
-        }
-      />
+      {REMOTES_REGISTRY.map((remote) => {
+        const RemoteComponent = remote.component;
+        return (
+          <Route
+            key={remote.name}
+            path={`${remote.path}/*`}
+            element={
+              <RemoteErrorBoundary remoteName={remote.name}>
+                <React.Suspense fallback={<LoadingFallback message={`Streaming ${remote.name}...`} />}>
+                  <RemoteComponent />
+                </React.Suspense>
+              </RemoteErrorBoundary>
+            }
+          />
+        );
+      })}
     </Routes>
   );
 }
@@ -219,23 +246,20 @@ export default App;
 
 ---
 
-## 4. Remote Application Configuration (`packages/demoService`)
+## 4. Remote Application Configuration (`packages/marketingMfe`, `packages/authMfe`)
 
-The Remote application (port `5001`) operates both as an independent standalone web app and as a federated sub-module.
+Remote applications operate both as independent standalone web apps and as federated sub-modules.
 
 ### 4.1 Remote `vite.config.js`
-Exposes both the root sub-application (`./App`) and standalone micro-widgets (`./MfeDevWidget`) with `federation-css-fix`:
+Uses the centralized `defineRemoteConfig` helper:
 ```javascript
-import federation from "@originjs/vite-plugin-federation";
 import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
 
 export default defineRemoteConfig({
-  name: "demoService",
-  // Port is auto-inferred from remotes.manifest.json (port 5001)
-  // but can also be set explicitly: port: 5001
+  name: "marketingMfe",
+  // Port is auto-inferred from remotes.manifest.json (port 5002)
   exposes: {
     "./App": "./src/App.jsx",
-    "./MfeDevWidget": "./src/components/MfeDevWidget.jsx",
   },
   // Optional extras:
   // shared: { zustand: { singleton: true } },  // extra singletons merged on top of react defaults
@@ -247,26 +271,25 @@ export default defineRemoteConfig({
 > **Note**: `defineRemoteConfig` automatically handles:
 > - React 19 singleton deps (`react`, `react-dom`, `react-router`)
 > - Tailwind CSS v4 (`@tailwindcss/vite`)
-> - `federationCssFixPlugin` (auto-injects remote CSS `<link>` tags into `document.head`)
+> - `@module-federation/vite` Module Federation 2.0 compilation
 > - Port inference from `remotes.manifest.json`
 > - CORS headers on the preview server
->
-> The old manual vite.config shown above is no longer needed when using the preset.
 
 ### 4.2 Autonomous Relative Routing Rule
 Never hardcode parent URLs inside remote components. Define routes and links relatively:
 ```jsx
-// packages/demoService/src/App.jsx
+// packages/marketingMfe/src/App.jsx
 <Routes>
-  <Route path="/" element={<LandingPage />} />
-  <Route path="/settings" element={<DemoSettingsPage />} />
+  <Route path="/" element={<MarketingLandingPage />} />
+  <Route path="/features" element={<MarketingFeaturesPage />} />
 </Routes>
 
 // Inside remote views:
-<Link to="settings">Module Settings</Link>
+<Link to="features">Marketing Features</Link>
 <Link to=".." relative="path">Back</Link>
 ```
-When running standalone at `http://localhost:5001/`, this navigates to `/settings`.  
+When running standalone at `http://localhost:5002/`, this navigates to `/features`.  
+When embedded at `http://localhost:5000/landing/*`, it navigates to `/landing/features`.  
 When embedded at `http://localhost:5000/demo/*`, it navigates to `/demo/settings`.
 
 ---
@@ -358,16 +381,22 @@ Dynamically reads `remotes.manifest.json` via `scripts/orchestrate.js`, pre-buil
 
 ### Targeted Local DX (Host + Single Remote)
 ```bash
-# Compile and boot ONLY demoService alongside host; ignores other remotes
-pnpm dev:only demoService
+# Compile and boot ONLY marketingMfe alongside host; ignores other remotes
+pnpm dev:only marketingMfe
 ```
 Enables instant local developer iteration without running multiple unnecessary micro-services on local machines.
+
+### Port Cleanliness Guard
+```bash
+# Check and kill any orphaned processes on dev/preview ports
+pnpm clean:ports
+```
 
 ### Production Build
 ```bash
 pnpm build
 ```
-Executes dynamic topological builds: builds all remotes in `remotes.manifest.json` first, followed by the `host` shell.
+Executes dynamic topological builds with Turborepo: builds all remotes in `remotes.manifest.json` first, followed by the `host` shell.
 
 ### Type Safety Verification
 ```bash
@@ -377,7 +406,7 @@ pnpm typecheck
 
 ### Automated Testing & Coverage
 ```bash
-# Run all unit and integration test suites (26 tests)
+# Run all unit and integration test suites
 pnpm test
 
 # Run tests in watch mode
@@ -391,64 +420,34 @@ pnpm test:coverage
 ```bash
 pnpm lint
 ```
-Runs `oxlint` across all workspace packages.
-
-### Resetting to Clean Starter Mode
-```bash
-# Backup and remove demoService, applying clean starter templates
-pnpm reset:demo
-
-# Restore the demoService setup and configuration from backup
-pnpm restore:demo
-```
+Runs `oxlint` across all workspace packages via Turborepo.
 
 ---
 
 ## 8. Adding a New Remote Micro-Frontend
 
-Adding a new micro-frontend is manifest-driven and completely automated:
+Adding a new micro-frontend is now automated into a **single command**:
 
-1. **Create Package**:
-   ```bash
-   mkdir packages/billingService
-   cd packages/billingService
-   pnpm init
-   ```
-2. **Install Core Dependencies**:
-   ```bash
-   pnpm --filter billingService add react react-dom react-router @subrataroy100/mfe-shared
-   pnpm --filter billingService add -D vite @vitejs/plugin-react @originjs/vite-plugin-federation @tailwindcss/vite tailwindcss oxlint
-   ```
-3. **Configure `vite.config.js`**:
-   Use `defineRemoteConfig` from `@subrataroy100/mfe-shared/vite`, specifying `name: "billingService"` and exposing `./App`. Port, Tailwind, React 19 singletons, and `federationCssFixPlugin` are configured automatically.
-4. **Register in `remotes.manifest.json`**:
-   ```json
-   {
-     "demoService": { ... },
-     "billingService": {
-       "port": 5002,
-       "path": "/billing",
-       "entry": "/remoteEntry.js",
-       "envVar": "VITE_BILLING_SERVICE_URL"
-     }
-   }
-   ```
-   > 💡 No manual editing of `host/vite.config.js` or root scripts is required!
-5. **Mount in Host `src/App.jsx`**:
-   ```jsx
-   const BillingApp = React.lazy(() => import("billingService/App"));
-   // ...
-   <Route
-     path="/billing/*"
-     element={
-       <RemoteErrorBoundary remoteName="Billing Service">
-         <React.Suspense fallback={<LoadingFallback message="Streaming Billing Service..." />}>
-           <BillingApp />
-         </React.Suspense>
-       </RemoteErrorBoundary>
-     }
-   />
-   ```
+```bash
+pnpm mfe:create billingService --path /billing --framework react
+```
+
+### What this automatically does:
+1. **Scaffolds Directory & Package**:
+   - Generates `packages/billingService/` with standard Vite + React configuration.
+2. **Auto-Assigns Dev Port**:
+   - Finds next available port (e.g. `5004`) and saves into `remotes.manifest.json`.
+3. **Federation Preset**:
+   - Configures `vite.config.js` with `defineRemoteConfig` powered by `@module-federation/vite`.
+4. **Zero-Touch Route Mounting**:
+   - Dynamic registry generator updates `packages/host/src/remotesRegistry.jsx`.
+   - Host `App.jsx` automatically mounts `/billing/*` wrapped in error boundaries and loading fallbacks.
+   - **No manual code edits to the Host are needed!**
+
+Start developing your new remote immediately:
+```bash
+pnpm dev:only billingService
+```
 
 ---
 

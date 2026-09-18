@@ -12,6 +12,14 @@ describe("scripts/manifest", () => {
     const manifest = loadManifest();
     expect(manifest).toBeDefined();
     expect(typeof manifest).toBe("object");
+    if (manifest.marketingMfe) {
+      expect(manifest.marketingMfe.port).toBe(5002);
+      expect(manifest.marketingMfe.entry).toBe("/remoteEntry.js");
+    }
+    if (manifest.authMfe) {
+      expect(manifest.authMfe.port).toBe(5003);
+      expect(manifest.authMfe.entry).toBe("/remoteEntry.js");
+    }
     if (manifest.demoService) {
       expect(manifest.demoService.port).toBe(5001);
       expect(manifest.demoService.entry).toBe("/remoteEntry.js");

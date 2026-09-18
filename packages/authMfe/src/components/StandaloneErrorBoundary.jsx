@@ -2,7 +2,7 @@ import React from "react";
 
 /**
  * Lightweight ErrorBoundary component for standalone mode.
- * Catches unhandled runtime exceptions inside demoService and renders
+ * Catches unhandled runtime exceptions inside authMfe and renders
  * a graceful fallback UI with a reset button, preventing blank screens.
  */
 export default class StandaloneErrorBoundary extends React.Component {

@@ -20,6 +20,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "preview": "pnpm --filter host preview",
+    "clean:ports": "node scripts/port-guard.js",
+    "mfe:create": "node scripts/create-remote.js",
     "reset:demo": "node scripts/reset-demo.js",
     "restore:demo": "node scripts/restore-demo.js"
   },
@@ -39,7 +41,7 @@
     "node": ">=20.0.0"
   },
   "devDependencies": {
-    "@originjs/vite-plugin-federation": "^1.4.1",
+    "@module-federation/vite": "^1.22.0",
     "@testing-library/react": "^16.3.3",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.1",

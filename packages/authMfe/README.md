@@ -1,16 +1,28 @@
-# React + Vite
+# Authentication Micro-Frontend (`packages/authMfe`)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The authentication and authorization micro-frontend service for the CampusMind Web platform.
 
-Currently, two official plugins are available:
+## Overview
+- **Port**: `5003`
+- **Route Prefix**: `/auth`
+- **Exposed Modules**: `./App`
+- **Framework**: React 19 + React Router v8 + Tailwind CSS v4
+- **Federation Engine**: `@module-federation/vite` via `defineRemoteConfig`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Features
+- Independent standalone execution at `http://localhost:5003`
+- Federated mounting in Host container at `http://localhost:5000/auth`
+- Cross-MFE Event Bus integration
+- Autonomous relative routing (`/` and auth sub-paths)
+- Localized error boundaries and loading fallbacks
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Development & Scripts
+- `pnpm --filter authMfe dev`: Runs standalone dev server with HMR.
+- `pnpm --filter authMfe build`: Builds remote production bundle including `remoteEntry.js`.
+- `pnpm --filter authMfe preview`: Serves production preview server on port 5003.
+- `pnpm --filter authMfe lint`: Runs `oxlint`.
+- `pnpm --filter authMfe typecheck`: Type check with `tsc --noEmit`.

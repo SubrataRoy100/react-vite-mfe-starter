@@ -85,7 +85,7 @@ npm create vite@latest cart-remote -- --template react
 cd cart-remote
 npm install
 npm install @subrataroy100/mfe-shared
-npm install -D @originjs/vite-plugin-federation
+npm install -D @module-federation/vite
 ```
 
 ### 2. Configure `vite.config.js`
@@ -177,7 +177,7 @@ npm create vite@latest host-app -- --template react
 cd host-app
 npm install
 npm install @subrataroy100/mfe-shared
-npm install -D @originjs/vite-plugin-federation
+npm install -D @module-federation/vite
 ```
 
 ### 2. Configure `vite.config.js` in Host
@@ -187,16 +187,22 @@ Configure the federation plugin using `DEFAULT_SHARED_DEPS`:
 // host-app/vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import federation from '@originjs/vite-plugin-federation';
+import * as mf from '@module-federation/vite';
 import { DEFAULT_SHARED_DEPS } from '@subrataroy100/mfe-shared/vite';
 
 export default defineConfig({
   plugins: [
     react(),
-    federation({
+    mf.federation({
       name: 'hostApp',
       remotes: {
-        cartRemote: 'http://localhost:5001/assets/remoteEntry.js',
+        cartRemote: {
+          type: 'module',
+          name: 'cartRemote',
+          entry: 'http://localhost:5001/remoteEntry.js',
+          entryGlobalName: 'cartRemote',
+          shareScope: 'default',
+        },
       },
       // Ensures Host and Remotes share identical React 19 singletons:
       shared: DEFAULT_SHARED_DEPS,

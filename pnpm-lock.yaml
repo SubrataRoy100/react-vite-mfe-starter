@@ -166,9 +166,9 @@ importers:
 
   .:
     devDependencies:
-      '@originjs/vite-plugin-federation':
-        specifier: ^1.4.1
-        version: 1.4.1
+      '@module-federation/vite':
+        specifier: ^1.22.0
+        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)

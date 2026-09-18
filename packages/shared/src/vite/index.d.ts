@@ -21,7 +21,11 @@ export interface RemoteConfigOptions extends Omit<UserConfig, "plugins" | "serve
   exposes?: Record<string, string>;
   /** Shared dependencies map (merged on top of framework defaults) */
   shared?: Record<string, any>;
-  /** Extra options passed directly to @originjs/vite-plugin-federation */
+  /** Federation engine to use: "@module-federation/vite" (default) or "originjs" */
+  engine?: "module-federation" | "originjs";
+  /** Generate TypeScript declaration files (defaults to false) */
+  dts?: boolean;
+  /** Extra options passed directly to the federation plugin */
   federationOptions?: Record<string, any>;
   /** Options passed to @vitejs/plugin-react (when framework is "react") */
   reactOptions?: Record<string, any>;

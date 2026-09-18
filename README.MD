@@ -33,17 +33,25 @@ mfe/ (Root Workspace)
 │   │   ├── src/
 │   │   │   ├── components/       # Shell-level components (RemoteErrorBoundary, LoadingFallback)
 │   │   │   ├── pages/            # Host views (LandingPage)
-│   │   │   ├── App.jsx           # Host routing & remote module boundaries
+│   │   │   ├── remotesRegistry.jsx # Auto-generated zero-touch dynamic remote route registry
+│   │   │   ├── App.jsx           # Host dynamic routing & remote module boundaries
 │   │   │   └── main.jsx          # Entry point (sets window.__IS_HOST__)
 │   │   └── vite.config.js        # Dynamic federation consumer config (driven by manifest)
 │   │
-│   └── demoService/              # Independent Micro-Frontend Remote (Port 5001)
+│   ├── marketingMfe/             # Marketing & Landing Remote (Port 5002, /landing)
+│   │   ├── src/
+│   │   │   ├── components/       # Feature components & MfeDevWidget
+│   │   │   ├── pages/            # Marketing internal views
+│   │   │   ├── App.jsx           # Sub-app routes
+│   │   │   └── main.jsx          # Standalone dev entry point
+│   │   └── vite.config.js        # Module Federation 2.0 provider config
+│   │
+│   └── authMfe/                  # Authentication & Auth Remote (Port 5003, /auth)
 │       ├── src/
-│       │   ├── components/       # Feature components & MfeDevWidget
-│       │   ├── pages/            # Remote internal views (DemoLandingPage, DemoSettingsPage)
-│       │   ├── App.jsx           # Sub-app routes (/ & /settings)
+│       │   ├── pages/            # Login, register, and auth views
+│       │   ├── App.jsx           # Sub-app routes
 │       │   └── main.jsx          # Standalone dev entry point
-│       └── vite.config.js        # Federation provider config + federation-css-fix
+│       └── vite.config.js        # Module Federation 2.0 provider config
 │
 ├── docs/                         # Architecture & step-by-step setup guides
 ├── netlify.toml                  # Edge deployment headers (remoteEntry no-cache, assets immutable)
@@ -71,10 +79,10 @@ pnpm install
 pnpm dev
 ```
 This single command:
-1. Performs a fast initial build of remotes to guarantee `dist/` manifests exist.
-2. Starts `demoService` in `vite build --watch` mode.
-3. Launches `demoService` preview server on `http://localhost:5001`.
-4. Boots the `host` shell with Vite HMR on `http://localhost:5000`.
+1. **Port Guard**: Pre-checks and frees any orphaned background processes on configured ports.
+2. **Pre-Build**: Performs a fast initial build of remotes to guarantee `dist/` manifests exist.
+3. **Zero-Touch Registry**: Automatically generates `packages/host/src/remotesRegistry.jsx` and `remotes.d.ts` from `remotes.manifest.json`.
+4. **Concurrent Orchestration**: Starts all remotes in `watch` and `preview` modes, and launches `host` on `http://localhost:5000`.
 
 Open **[http://localhost:5000](http://localhost:5000)** in your browser to view the Host portal.
 
@@ -86,7 +94,7 @@ This framework includes an interactive **MFE Diagnostics & Testing Playground** 
 
 1. **Runtime Context Detection**:
    - The `<MfeDevWidget />` component inspects its execution environment.
-   - When loaded at `http://localhost:5001/`, it badges as **Standalone Mode (Port 5001)**.
+   - When loaded at `http://localhost:5002/`, it badges as **Standalone Mode (Port 5002)**.
    - When embedded inside `http://localhost:5000/`, it dynamically badges as **Embedded in Host Shell**.
 
 2. **Cross-MFE Event Bus**:
@@ -104,46 +112,56 @@ This framework includes an interactive **MFE Diagnostics & Testing Playground** 
 ## 🔑 Key Architectural Conventions
 
 ### 1. Relative Routing (Autonomous Remotes)
-Micro-frontends must not hardcode parent route prefixes. In `demoService`, routes are defined relatively:
+Micro-frontends must not hardcode parent route prefixes. In `marketingMfe` and `authMfe`, routes are defined relatively:
 ```jsx
-// demoService/src/App.jsx
+// marketingMfe/src/App.jsx
 <Routes>
-  <Route path="/" element={<LandingPage />} />
-  <Route path="/settings" element={<DemoSettingsPage />} />
+  <Route path="/" element={<MarketingLandingPage />} />
+  <Route path="/features" element={<MarketingFeaturesPage />} />
 </Routes>
 ```
 And links use relative targets:
 ```jsx
 // Inside remote:
-<Link to="settings">Module Settings</Link>
+<Link to="features">Features</Link>
 <Link to=".." relative="path">Back</Link>
 ```
-This ensures the sub-app runs identically both standalone at `localhost:5001/` and mounted under `/demo/*` in the host container.
+This ensures the sub-app runs identically both standalone at `localhost:5002/` and mounted under `/landing/*` in the host container.
 
-### 2. Localized Error Boundaries & Suspense Fallbacks
-Remotes are loaded over the network and can fail independently. The Host wraps every remote route in an isolated boundary:
+### 2. Zero-Touch Dynamic Route Mounting & Localized Error Boundaries
+No manual route editing is required when adding a remote! During `dev` or `build`, `scripts/generate-remotes-dts.js` automatically inspects `remotes.manifest.json` and generates `packages/host/src/remotesRegistry.jsx`.
+
+The Host dynamically iterates over `REMOTES_REGISTRY`:
 ```jsx
 // host/src/App.jsx
-<Route
-  path="/demo/*"
-  element={
-    <RemoteErrorBoundary remoteName="Demo Service Module">
-      <React.Suspense fallback={<LoadingFallback message="Streaming Demo Service..." />}>
-        <DemoApp />
-      </React.Suspense>
-    </RemoteErrorBoundary>
-  }
-/>
+{REMOTES_REGISTRY.map((remote) => {
+  const RemoteComponent = remote.component;
+  return (
+    <Route
+      key={remote.name}
+      path={`${remote.path}/*`}
+      element={
+        <RemoteErrorBoundary remoteName={remote.name}>
+          <React.Suspense fallback={<LoadingFallback message={`Streaming ${remote.name}...`} />}>
+            <RemoteComponent />
+          </React.Suspense>
+        </RemoteErrorBoundary>
+      }
+    />
+  );
+})}
 ```
+Every remote route is wrapped in an isolated `<RemoteErrorBoundary>` with a Suspense fallback.
 
 ### 3. Environment-Aware & Dynamic Runtime Remote Resolution
 Host remote URLs can be overridden at build-time via environment variables or dynamically at runtime:
-- **Build-Time Fallback**: Standard environment variables (`VITE_DEMO_SERVICE_URL`) resolve default CDN / localhost locations.
-- **Runtime Dynamic Override (`window.__MFE_RUNTIME_CONFIG__`)**: Micro-frontend remotes in `packages/host/vite.config.js` use `externalType: "promise"`. In staging/production environments, operations teams or service discovery layers can inject dynamic remote endpoints directly on `window`:
+- **Build-Time Fallback**: Standard environment variables (`VITE_MARKETING_MFE_URL`, `VITE_AUTH_MFE_URL`) resolve default CDN or localhost locations.
+- **Runtime Dynamic Override (`window.__MFE_RUNTIME_CONFIG__`)**: Operations teams or service discovery layers can inject dynamic remote endpoints directly on `window` in staging and production:
 ```html
 <script>
   window.__MFE_RUNTIME_CONFIG__ = {
-    demoService: "https://staging-cdn.example.com/remoteEntry.js"
+    marketingMfe: "https://staging-cdn.example.com/marketing/remoteEntry.js",
+    authMfe: "https://staging-cdn.example.com/auth/remoteEntry.js"
   };
 </script>
 ```
@@ -152,8 +170,8 @@ Without rebuilding the host shell container, the browser dynamically evaluates a
 ### 4. Targeted Local DX (Independent Isolation)
 In large monorepos with dozens of micro-frontends, developers should not be forced to run every remote locally:
 ```bash
-# Boots only the Host Shell + demoService; skips all other remotes
-pnpm dev:only demoService
+# Boots only the Host Shell + marketingMfe; skips all other remotes
+pnpm dev:only marketingMfe
 ```
 The orchestration script parses `remotes.manifest.json`, isolates the requested target, and only compiles and watches the chosen remote alongside the Host shell.
 
@@ -234,8 +252,10 @@ bus.useListener("cart:updated", (detail) => {
 
 | Command | Description |
 | :--- | :--- |
-| `pnpm dev` | Dynamically builds all remotes from manifest, then concurrently starts remote watch, remote preview, and host dev. |
-| `pnpm dev:only <name>` | Targeted DX: Builds and boots **only** the Host Shell and a specific Remote (e.g. `pnpm dev:only demoService`). |
+| `pnpm dev` | Pre-checks ports, builds remotes, generates registry, then starts watch, preview, and host dev concurrently. |
+| `pnpm dev:only <name>` | Targeted DX: Boots **only** the Host Shell and a specific Remote (e.g. `pnpm dev:only marketingMfe`). |
+| `pnpm mfe:create <name>` | **One-command remote scaffolder**: Generates full package, auto-allocates port, updates manifest, and mounts routes. |
+| `pnpm clean:ports` | Kills any orphaned or ghost background processes holding MFE dev/preview ports. |
 | `pnpm build` | Production build across all packages using **Turborepo** with outputs caching (`>>> FULL TURBO`). |
 | `pnpm build:remotes` | Builds all remote micro-frontends using Turborepo (`turbo run build --filter=!host`). |
 | `pnpm remotes:list` | Prints a summary table of all active remotes configured in `remotes.manifest.json`. |
@@ -245,105 +265,50 @@ bus.useListener("cart:updated", (detail) => {
 | `pnpm test:coverage` | Generates full code coverage report via `@vitest/coverage-v8`. |
 | `pnpm lint` | Runs `oxlint` across all workspace packages via Turborepo (`turbo run lint`). |
 | `pnpm preview` | Serves the production build of the host shell. |
-| `pnpm reset:demo` | Backs up and removes `demoService`, resetting the host shell into a clean starter setup. |
-| `pnpm restore:demo` | Restores the demo service showcase and configuration from `.demo-backup/`. |
-| `pnpm --filter <pkg> dev` | Runs dev server for a specific package (e.g. `pnpm --filter demoService dev`). |
-
----
-
-## 🧹 Resetting to Clean Starter Mode
-
-If you are using this repository as a production starter template and want to remove the default `demoService` showcase:
-
-```bash
-pnpm reset:demo
-```
-
-### What this does:
-1. **Safety Backup**: Backs up `packages/demoService/`, current host router files, and `remotes.manifest.json` into `.demo-backup/`.
-2. **Removes Demo Service**: Deletes `packages/demoService/` from the workspace.
-3. **Cleans Manifest**: Updates [`remotes.manifest.json`](remotes.manifest.json) to `{}`.
-4. **Applies Clean Host Shell**: Swaps `App.jsx` and `LandingPage.jsx` into clean starter templates with zero demo dependencies and instructions for registering custom remotes.
-5. **Zero Downtime**: `pnpm build`, `pnpm lint`, and `pnpm test` continue to pass with 0 errors in clean mode.
-
-### Restoring the Demo Setup
-To restore the interactive demo showcase anytime:
-```bash
-pnpm restore:demo
-```
+| `pnpm --filter <pkg> dev` | Runs dev server for a specific package (e.g. `pnpm --filter marketingMfe dev`). |
 
 ---
 
 ## ➕ How to Add a New Remote Micro-Frontend
 
-Adding a new micro-frontend is completely decoupled and automated through `remotes.manifest.json`:
+Adding a new micro-frontend is now **a single command** with **zero manual configuration**:
 
-1. **Create Package**:
+```bash
+pnpm mfe:create <name> [--framework <react|vue|vanilla>] [--path </route>]
+```
+
+### Example: Creating a Billing Remote
+```bash
+pnpm mfe:create billingService --path /billing --framework react
+```
+
+### What this automatically does:
+1. **Scaffolds Package Structure**:
+   - Generates `packages/billingService/` with proper `package.json`, `index.html`, and `src/`.
+   - Injects the `pnpm dev`, `pnpm build`, `pnpm preview`, and `pnpm lint` scripts.
+2. **Auto-Port Allocation**:
+   - Inspects `remotes.manifest.json` and assigns the next available port (e.g. `5004`).
+3. **Module Federation 2.0 Configuration**:
+   - Sets up `vite.config.js` using `defineRemoteConfig` from `@subrataroy100/mfe-shared/vite` powered by `@module-federation/vite`.
+   - Exposes `./App` and includes Tailwind CSS v4.
+4. **Registers in Manifest**:
+   - Appends `billingService` to `remotes.manifest.json`.
+5. **Zero-Touch Dynamic Route Mounting**:
+   - On `pnpm dev` or `pnpm build`, `scripts/generate-remotes-dts.js` regenerates `packages/host/src/remotesRegistry.jsx`.
+   - `packages/host/src/App.jsx` dynamically mounts `/billing/*` wrapped in `<RemoteErrorBoundary>` and Suspense fallbacks.
+   - **Zero edits to Host code required!**
+
+6. Start working immediately:
    ```bash
-   mkdir packages/myService
-   cd packages/myService
-   pnpm init
-   ```
-2. **Install Dependencies**:
-   Add React, Vite, and `@originjs/vite-plugin-federation`:
-   ```bash
-   pnpm --filter myService add react react-dom react-router @subrataroy100/mfe-shared
-   pnpm --filter myService add -D vite @vitejs/plugin-react @originjs/vite-plugin-federation @tailwindcss/vite tailwindcss
-   ```
-3. **Configure Federation (`defineRemoteConfig`)**:
-   In `packages/myService/vite.config.js`, use the centralized preset from `@subrataroy100/mfe-shared/vite`:
-   ```javascript
-   import { defineRemoteConfig } from "@subrataroy100/mfe-shared/vite";
-
-   export default defineRemoteConfig({
-     name: "myService",
-     // Port is auto-inferred from remotes.manifest.json, or can be set explicitly:
-     // port: 5002,
-     exposes: {
-       "./App": "./src/App.jsx",
-     },
-   });
+   pnpm dev:only billingService
    ```
 
-   #### 🛠️ Adding Custom Settings & Overrides:
-   `defineRemoteConfig` is completely extensible:
-   - **Custom Plugins**: Pass extra plugins in `plugins: [svgr()]`.
-   - **Extra Shared Dependencies**: Pass `shared: { "zustand": { singleton: true } }` (React 19 singletons are preserved automatically).
-   - **Custom Vite Settings**: Pass `resolve.alias`, `server.proxy`, etc., which are merged with defaults.
-   - **Dynamic / Mode-Based Config**: Pass a function `defineRemoteConfig(({ mode }) => ({ ... }))` or use the `extend: (config, env) => { ... }` escape-hatch hook.
-
-4. **Register in `remotes.manifest.json`**:
-   Add one entry to the root manifest—**no need to touch `host/vite.config.js` or `package.json` scripts**:
-   ```json
-   {
-     "demoService": {
-       "port": 5001,
-       "path": "/demo",
-       "entry": "/remoteEntry.js",
-       "envVar": "VITE_DEMO_SERVICE_URL"
-     },
-     "myService": {
-       "port": 5002,
-       "path": "/myservice",
-       "entry": "/remoteEntry.js",
-       "envVar": "VITE_MY_SERVICE_URL"
-     }
-   }
-   ```
-5. **Mount in Host Router**:
-   In `packages/host/src/App.jsx`, add lazy import and route:
-   ```jsx
-   const MyServiceApp = React.lazy(() => import("myService/App"));
-   // ...
-   <Route path="/myservice/*" element={
-     <RemoteErrorBoundary remoteName="My Service">
-       <React.Suspense fallback={<LoadingFallback message="Loading My Service..." />}>
-         <MyServiceApp />
-       </React.Suspense>
-     </RemoteErrorBoundary>
-   } />
-   ```
-6. Run `pnpm dev` or `pnpm build`—the orchestration scripts automatically detect `myService` from the manifest!
+#### 🛠️ Custom Settings & Overrides in `vite.config.js`:
+`defineRemoteConfig` remains fully customizable:
+- **Custom Plugins**: Pass extra plugins in `plugins: [svgr()]`.
+- **Extra Shared Dependencies**: Pass `shared: { "zustand": { singleton: true } }` (React 19 singletons are preserved automatically).
+- **Custom Vite Settings**: Pass `resolve.alias`, `server.proxy`, etc., which are merged with defaults.
+- **Dynamic / Mode-Based Config**: Pass a function `defineRemoteConfig(({ mode }) => ({ ... }))` or use the `extend: (config, env) => { ... }` escape-hatch hook.
 
 ---
 

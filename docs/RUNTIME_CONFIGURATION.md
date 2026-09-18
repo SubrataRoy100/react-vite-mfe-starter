@@ -32,24 +32,32 @@ The file at the **monorepo root** (`remotes.manifest.json`) is the single source
 
 ```json
 {
-  "demoService": {
-    "port": 5001,
-    "path": "/demo",
+  "marketingMfe": {
+    "port": 5002,
+    "path": "/landing",
     "entry": "/remoteEntry.js",
-    "envVar": "VITE_DEMO_SERVICE_URL"
+    "envVar": "VITE_MARKETING_MFE_URL",
+    "framework": "react"
+  },
+  "authMfe": {
+    "port": 5003,
+    "path": "/auth",
+    "entry": "/remoteEntry.js",
+    "envVar": "VITE_AUTH_MFE_URL",
+    "framework": "react"
   }
 }
 ```
 
 ### Adding a new remote
 
-Drop a new entry into `remotes.manifest.json`. The host's `vite.config.js` iterates every key at build time — no manual edits to `vite.config.js` are required.
+Drop a new entry into `remotes.manifest.json` or use `pnpm mfe:create <name>`. The host's `vite.config.js` iterates every key at build time — no manual edits to `vite.config.js` are required.
 
 ---
 
 ## 2. URL Resolution Priority
 
-At build time the host generates an async `Promise.resolve(...)` expression for each remote. When the host shell runs in the browser it evaluates:
+At build time the host configures Module Federation 2.0 remotes from the manifest:
 
 ```javascript
 // Generated for each remote in packages/host/vite.config.js
@@ -60,28 +68,31 @@ const remotes = Object.fromEntries(
     return [
       name,
       {
-        external: `Promise.resolve((typeof window !== 'undefined' && window.__MFE_RUNTIME_CONFIG__ && window.__MFE_RUNTIME_CONFIG__[${JSON.stringify(name)}]) || ${JSON.stringify(fallbackUrl)})`,
-        externalType: 'promise',
+        type: "module",
+        name,
+        entry: fallbackUrl,
+        entryGlobalName: name,
+        shareScope: "default",
       },
     ];
   })
 );
 ```
 
-This produces the following three-tier lookup, evaluated **in order at runtime**:
+This produces the following lookup hierarchy:
 
 | Priority | Source | When it wins |
 |----------|--------|-------------|
 | **1 — highest** | `window.__MFE_RUNTIME_CONFIG__[name]` | Injected into the HTML at request time by an edge function, CDN, or server. Takes effect without rebuilding. |
-| **2** | `process.env[cfg.envVar]` (e.g. `VITE_DEMO_SERVICE_URL`) | Set at **build time**. Baked into the `fallbackUrl` string when the bundle is compiled. |
+| **2** | `process.env[cfg.envVar]` (e.g. `VITE_MARKETING_MFE_URL`) | Set at **build time**. Baked into the `fallbackUrl` string when the bundle is compiled. |
 | **3 — lowest** | `http://localhost:{port}{entry}` | Derived from the manifest (`port` + `entry`). Used when no env var is set — typically local development. |
 
-For `demoService` the resolved chain is:
+For `marketingMfe` the resolved chain is:
 
 ```
-window.__MFE_RUNTIME_CONFIG__.demoService
-  || VITE_DEMO_SERVICE_URL (build-time)
-  || http://localhost:5001/remoteEntry.js (manifest fallback)
+window.__MFE_RUNTIME_CONFIG__.marketingMfe
+  || VITE_MARKETING_MFE_URL (build-time)
+  || http://localhost:5002/remoteEntry.js (manifest fallback)
 ```
 
 > **Important:** Priorities 2 and 3 are resolved at **build time** and frozen into the bundle as a single string (`fallbackUrl`). Only priority 1 (`window.__MFE_RUNTIME_CONFIG__`) is truly dynamic and can be changed without rebuilding.

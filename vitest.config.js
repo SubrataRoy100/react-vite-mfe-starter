@@ -20,7 +20,10 @@ if (hasDemoService) {
     new URL("./packages/demoService/src/App.jsx", import.meta.url)
   );
   alias["demoService/MfeDevWidget"] = fileURLToPath(
-    new URL("./packages/demoService/src/components/MfeDevWidget.jsx", import.meta.url)
+    new URL(
+      "./packages/demoService/src/components/MfeDevWidget.jsx",
+      import.meta.url
+    )
   );
 }
 

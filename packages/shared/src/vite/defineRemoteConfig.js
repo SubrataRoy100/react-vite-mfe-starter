@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import federation from "@originjs/vite-plugin-federation";
+import originjsFederation from "@originjs/vite-plugin-federation";
+import { federation as mfFederation } from "@module-federation/vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -182,6 +183,7 @@ export function defineRemoteConfig(optionsOrFn) {
 
     const {
       name,
+      engine = "module-federation",
       framework = "react",
       frameworkPlugin,
       tailwind = true,
@@ -190,6 +192,7 @@ export function defineRemoteConfig(optionsOrFn) {
       filename = "remoteEntry.js",
       exposes = {},
       shared = {},
+      dts = false,
       federationOptions = {},
       reactOptions,
       plugins = [],
@@ -261,11 +264,10 @@ export function defineRemoteConfig(optionsOrFn) {
       ? userOutput.map((out) => ({ ...out, ...baseOutput }))
       : { ...userOutput, ...baseOutput };
 
-    const config = {
-      plugins: [
-        ...frameworkPlugins,
-        ...(tailwind ? [tailwindcss()] : []),
-        federation({
+    let fedPlugins = [];
+    if (engine === "originjs") {
+      fedPlugins = [
+        originjsFederation({
           name,
           filename,
           exposes,
@@ -273,8 +275,26 @@ export function defineRemoteConfig(optionsOrFn) {
           ...federationOptions,
         }),
         federationCssFixPlugin,
+      ];
+    } else {
+      const res = mfFederation({
+        name,
+        filename,
+        exposes,
+        shared: mergedShared,
+        dts: dts ?? false,
+        ...federationOptions,
+      });
+      fedPlugins = Array.isArray(res) ? res : [res];
+    }
+
+    const config = {
+      plugins: [
+        ...frameworkPlugins,
+        ...(tailwind ? [tailwindcss()] : []),
+        ...fedPlugins,
         ...plugins,
-      ],
+      ].filter(Boolean),
       server: {
         port,
         strictPort: true,
