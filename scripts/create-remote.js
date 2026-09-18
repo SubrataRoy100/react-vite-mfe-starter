@@ -9,11 +9,18 @@ function parseArgs() {
   let name = null;
   let framework = "react";
   let routePath = null;
+  let paths = null;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === "--framework" || arg === "-f") {
       framework = args[++i] || "react";
+    } else if (arg === "--paths") {
+      const raw = args[++i] || "";
+      paths = raw
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean);
     } else if (arg === "--path" || arg === "-p") {
       routePath = args[++i];
     } else if (!arg.startsWith("-") && !name) {
@@ -21,7 +28,7 @@ function parseArgs() {
     }
   }
 
-  return { name, framework: framework.toLowerCase(), routePath };
+  return { name, framework: framework.toLowerCase(), routePath, paths };
 }
 
 function getNextPort(manifest) {
@@ -32,9 +39,9 @@ function getNextPort(manifest) {
   return maxPort + 1;
 }
 
-export function createRemote({ name, framework = "react", routePath = null }) {
+export function createRemote({ name, framework = "react", routePath = null, paths = null }) {
   if (!name) {
-    console.error("❌ Error: Remote name is required. Usage: pnpm mfe:create <name> [--framework <react|vue|vanilla>] [--path </route>]");
+    console.error("❌ Error: Remote name is required. Usage: pnpm mfe:create <name> [--framework <react|vue|vanilla>] [--path </route> | --paths </r1,/r2>]");
     process.exit(1);
   }
 
@@ -61,13 +68,14 @@ export function createRemote({ name, framework = "react", routePath = null }) {
   }
 
   const port = getNextPort(manifest);
-  const finalPath = routePath || `/${name}`;
+  const finalPath = paths && paths.length > 0 ? paths[0] : routePath || `/${name}`;
+  const displayRoutes = paths && paths.length > 0 ? paths.join(", ") : finalPath;
   const envVar = `VITE_${name.replace(/([a-z])([A-Z])/g, "$1_$2").toUpperCase()}_URL`;
 
   console.log(`\n🚀 Scaffolding new Micro-Frontend Remote: ${name}`);
   console.log(`   Framework: ${framework}`);
   console.log(`   Assigned Port: ${port}`);
-  console.log(`   Host Route: ${finalPath}`);
+  console.log(`   Host Route(s): ${displayRoutes}`);
   console.log(`   Directory: packages/${name}\n`);
 
   mkdirSync(join(packageDir, "src", "components"), { recursive: true });
@@ -255,13 +263,18 @@ if (root) {
   writeFileSync(join(packageDir, ".oxlintrc.json"), JSON.stringify({ rules: {} }, null, 2) + "\n");
 
   // 8. Register in remotes.manifest.json
-  manifest[name] = {
+  const manifestEntry = {
     port,
-    path: finalPath,
     entry: "/remoteEntry.js",
     envVar,
     framework,
   };
+  if (paths && paths.length > 0) {
+    manifestEntry.paths = paths;
+  } else {
+    manifestEntry.path = finalPath;
+  }
+  manifest[name] = manifestEntry;
   writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + "\n");
   generateRemotesDts();
 

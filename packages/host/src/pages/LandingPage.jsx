@@ -123,9 +123,10 @@ function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
               {remoteRoutes.map((remote) => {
                 const cleanPath = remote.urlPath || remote.path.replace(/\/\*$/, "");
+                const displayRoute = remote.path === "/" ? "/" : remote.path;
                 return (
                   <div
-                    key={remote.name}
+                    key={remote.key || `${remote.name}-${remote.path}`}
                     className="rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50/50 p-5 hover:border-indigo-300 hover:shadow-md transition duration-200 flex flex-col justify-between"
                   >
                     <div>
@@ -147,14 +148,14 @@ function LandingPage() {
                       <div className="mt-4 flex items-center gap-2">
                         <span className="text-xs text-slate-400 font-medium">Host Route:</span>
                         <code className="text-xs font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                          {cleanPath}/*
+                          {displayRoute}
                         </code>
                       </div>
                     </div>
 
                     <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
                       <Link
-                        to={cleanPath}
+                        to={cleanPath || "/"}
                         className="inline-flex items-center gap-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
                       >
                         <span>Open in Host</span>

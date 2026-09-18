@@ -8,24 +8,28 @@ import { remoteRoutes } from "./remotesRegistry.jsx";
 const LandingPage = React.lazy(() => import("./pages/LandingPage"));
 
 function App() {
+  const hasRootRemote = remoteRoutes.some((r) => r.path === "/");
+
   return (
     <Routes>
-      {/* Main host home landing route */}
-      <Route
-        path="/"
-        element={
-          <React.Suspense
-            fallback={<LoadingFallback message="Loading Host Shell..." />}
-          >
-            <LandingPage />
-          </React.Suspense>
-        }
-      />
+      {/* Host portal landing route (active when no remote is registered at root "/") */}
+      {!hasRootRemote && (
+        <Route
+          path="/"
+          element={
+            <React.Suspense
+              fallback={<LoadingFallback message="Loading Host Shell..." />}
+            >
+              <LandingPage />
+            </React.Suspense>
+          }
+        />
+      )}
 
       {/* Manifest-Driven Dynamic Remote Routes */}
-      {remoteRoutes.map(({ name, path, Component }) => (
+      {remoteRoutes.map(({ key, name, path, Component }) => (
         <Route
-          key={name}
+          key={key || `${name}-${path}`}
           path={path}
           element={
             <RemoteErrorBoundary remoteName={name}>
