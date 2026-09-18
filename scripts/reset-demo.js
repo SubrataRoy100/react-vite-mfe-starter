@@ -1,83 +1,148 @@
-import { existsSync, cpSync, rmSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { resolve } from "node:path";
-import { CLEAN_HOST_APP, CLEAN_HOST_LANDING_PAGE } from "./clean-templates.js";
+import {
+  existsSync,
+  cpSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  readdirSync,
+} from "node:fs";
+import { resolve, join } from "node:path";
+import { execSync } from "node:child_process";
+import { generateRemotesDts } from "./generate-remotes-dts.js";
 
 const rootDir = process.cwd();
-const demoServiceDir = resolve(rootDir, "packages", "demoService");
+const packagesDir = resolve(rootDir, "packages");
 const backupDir = resolve(rootDir, ".demo-backup");
 const manifestPath = resolve(rootDir, "remotes.manifest.json");
-const hostAppPath = resolve(rootDir, "packages", "host", "src", "App.jsx");
-const hostLandingPath = resolve(rootDir, "packages", "host", "src", "pages", "LandingPage.jsx");
+const planServicesPath = resolve(rootDir, "PlanServices.md");
 
 const noBackup = process.argv.includes("--no-backup");
 
 console.log("🧹 Resetting micro-frontend workspace to clean starter mode...\n");
 
-if (!existsSync(demoServiceDir)) {
-  console.log("ℹ️  demoService is not present in packages/. Checking manifest and templates...");
-} else {
-  if (!noBackup) {
-    console.log("📦 Creating backup of demo setup in .demo-backup/...");
-    mkdirSync(backupDir, { recursive: true });
+// 1. Identify all remote services to remove (preserve 'host' and 'shared')
+const protectedPackages = new Set(["host", "shared"]);
+const knownDefaultRemotes = ["marketingMfe", "authMfe", "demoService"];
 
-    // Backup demoService
-    cpSync(demoServiceDir, resolve(backupDir, "demoService"), { recursive: true });
-
-    // Backup host files
-    if (existsSync(hostAppPath)) {
-      cpSync(hostAppPath, resolve(backupDir, "App.jsx"));
-    }
-    if (existsSync(hostLandingPath)) {
-      cpSync(hostLandingPath, resolve(backupDir, "LandingPage.jsx"));
-    }
-    if (existsSync(manifestPath)) {
-      cpSync(manifestPath, resolve(backupDir, "remotes.manifest.json"));
-    }
-    console.log("   ✓ Backup completed at: .demo-backup/\n");
-  }
-
-  console.log("🗑️  Removing packages/demoService...");
+let manifest = {};
+if (existsSync(manifestPath)) {
   try {
-    rmSync(demoServiceDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
   } catch (err) {
+    console.warn("⚠️  Could not parse remotes.manifest.json:", err.message);
+  }
+}
+
+// Any service in manifest + any known default remote directory
+const servicesToRemove = new Set([
+  ...Object.keys(manifest),
+  ...knownDefaultRemotes,
+]);
+
+// Find which of these actually exist in packages/
+const existingServices = [];
+if (existsSync(packagesDir)) {
+  const dirs = readdirSync(packagesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && !protectedPackages.has(d.name))
+    .map((d) => d.name);
+
+  for (const dir of dirs) {
+    if (servicesToRemove.has(dir)) {
+      existingServices.push(dir);
+    }
+  }
+}
+
+// Helper to remove directory safely on all platforms (handles Windows file locks)
+function safeRmDir(dirPath) {
+  if (!existsSync(dirPath)) return;
+  try {
+    rmSync(dirPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  } catch {
     if (process.platform === "win32") {
       try {
-        const { execSync } = await import("node:child_process");
-        execSync(`rmdir /s /q "${demoServiceDir}"`, { stdio: "ignore" });
+        execSync(`rmdir /s /q "${dirPath}"`, { stdio: "ignore" });
       } catch {
         // Ignored
       }
-    } else {
-      throw err;
     }
   }
-  console.log("   ✓ packages/demoService removed.\n");
 }
 
-// Update remotes.manifest.json
-if (existsSync(manifestPath)) {
+// 2. Backup if requested
+if (!noBackup) {
+  console.log("📦 Creating backup of demo setup in .demo-backup/...");
+  mkdirSync(backupDir, { recursive: true });
+
+  // Backup remote packages
+  const backupPackagesDir = join(backupDir, "packages");
+  mkdirSync(backupPackagesDir, { recursive: true });
+
+  for (const svc of existingServices) {
+    const srcDir = join(packagesDir, svc);
+    const destDir = join(backupPackagesDir, svc);
+    safeRmDir(destDir);
+    cpSync(srcDir, destDir, { recursive: true });
+    console.log(`   ✓ Backed up packages/${svc}`);
+  }
+
+  // Backup remotes.manifest.json
+  if (existsSync(manifestPath)) {
+    cpSync(manifestPath, resolve(backupDir, "remotes.manifest.json"));
+    console.log("   ✓ Backed up remotes.manifest.json");
+  }
+
+  // Backup PlanServices.md
+  if (existsSync(planServicesPath)) {
+    cpSync(planServicesPath, resolve(backupDir, "PlanServices.md"));
+    console.log("   ✓ Backed up PlanServices.md");
+  }
+
+  console.log("   ✓ Backup completed at: .demo-backup/\n");
+}
+
+// 3. Remove existing demo services
+if (existingServices.length > 0) {
+  console.log("🗑️  Removing demo micro-frontend packages...");
+  for (const svc of existingServices) {
+    const dir = join(packagesDir, svc);
+    safeRmDir(dir);
+    console.log(`   ✓ packages/${svc} removed.`);
+  }
+  console.log("");
+} else {
+  console.log("ℹ️  No demo packages found in packages/ to remove.\n");
+}
+
+// 4. Remove PlanServices.md
+if (existsSync(planServicesPath)) {
   try {
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
-    if (manifest.demoService) {
-      delete manifest.demoService;
-      writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
-      console.log("📝 Updated remotes.manifest.json (removed demoService).");
-    }
+    rmSync(planServicesPath, { force: true });
+    console.log("🗑️  PlanServices.md removed.\n");
   } catch (err) {
-    console.warn("⚠️  Could not update remotes.manifest.json:", err.message);
+    console.warn("⚠️  Could not remove PlanServices.md:", err.message);
   }
 }
 
-// Replace host files with clean starter templates
-console.log("🎨 Applying clean starter templates to Host Shell...");
-writeFileSync(hostAppPath, CLEAN_HOST_APP, "utf-8");
-writeFileSync(hostLandingPath, CLEAN_HOST_LANDING_PAGE, "utf-8");
-console.log("   ✓ packages/host/src/App.jsx updated.");
-console.log("   ✓ packages/host/src/pages/LandingPage.jsx updated.\n");
+// 5. Reset remotes.manifest.json to clean empty state
+try {
+  writeFileSync(manifestPath, "{}\n", "utf-8");
+  console.log("📝 Reset remotes.manifest.json to clean empty object ({}).\n");
+} catch (err) {
+  console.warn("⚠️  Could not reset remotes.manifest.json:", err.message);
+}
+
+// 6. Regenerate host types and dynamic route registry
+console.log("⚙️  Regenerating host route registry and ambient TypeScript declarations...");
+generateRemotesDts();
+console.log("   ✓ remotesRegistry.jsx refreshed to clean empty routes.");
+console.log("   ✓ remotes.d.ts refreshed.\n");
 
 console.log("✨ Workspace reset complete!");
 console.log("---------------------------------------------------------------");
-console.log("• Your host shell is now a pristine starter ready for your remotes.");
-console.log("• To view your clean host: run 'pnpm dev'");
-console.log("• To restore the demo setup anytime: run 'pnpm restore:demo'");
+console.log("• All demo services, PlanServices.md, and manifest entries removed.");
+console.log("• Your host shell retains zero-touch dynamic routing.");
+console.log("• To scaffold your first remote: run 'pnpm mfe:create <name>'");
+console.log("• To restore the demo setup anytime: run 'pnpm restore:demo' (or 'pnpm restore/demo')");
 console.log("---------------------------------------------------------------\n");

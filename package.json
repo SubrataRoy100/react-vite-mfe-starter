@@ -23,7 +23,9 @@
     "clean:ports": "node scripts/port-guard.js",
     "mfe:create": "node scripts/create-remote.js",
     "reset:demo": "node scripts/reset-demo.js",
-    "restore:demo": "node scripts/restore-demo.js"
+    "reset/demo": "node scripts/reset-demo.js",
+    "restore:demo": "node scripts/restore-demo.js",
+    "restore/demo": "node scripts/restore-demo.js"
   },
   "keywords": [],
   "author": "",

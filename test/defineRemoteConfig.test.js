@@ -1,5 +1,8 @@
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import { defineRemoteConfig, DEFAULT_SHARED_DEPS } from "../packages/shared/src/vite/index.js";
+
+const mockManifestPath = resolve(process.cwd(), "test/fixtures/mock-remotes.manifest.json");
 
 describe("defineRemoteConfig", () => {
   it("throws an error if name is not provided", () => {
@@ -11,7 +14,8 @@ describe("defineRemoteConfig", () => {
 
   it("auto-resolves port from remotes.manifest.json if omitted", () => {
     const configFn = defineRemoteConfig({
-      name: "marketingMfe",
+      name: "testRemote",
+      manifestPath: mockManifestPath,
       exposes: { "./App": "./src/App.jsx" },
     });
     const resolved = configFn({ mode: "development", command: "serve" });
@@ -136,8 +140,8 @@ describe("defineRemoteConfig", () => {
 
   it("resolves port from custom manifestPath", () => {
     const configFn = defineRemoteConfig({
-      name: "marketingMfe",
-      manifestPath: "remotes.manifest.json",
+      name: "testRemote",
+      manifestPath: mockManifestPath,
     });
 
     const resolved = configFn({ mode: "development", command: "serve" });

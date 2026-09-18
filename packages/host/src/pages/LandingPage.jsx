@@ -108,61 +108,74 @@ function LandingPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-            {remoteRoutes.map((remote) => {
-              const cleanPath = remote.urlPath || remote.path.replace(/\/\*$/, "");
-              return (
-                <div
-                  key={remote.name}
-                  className="rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50/50 p-5 hover:border-indigo-300 hover:shadow-md transition duration-200 flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-2xl">{getRemoteIcon(remote.name)}</span>
-                        <div>
-                          <h3 className="font-bold text-slate-900 text-base">{remote.name}</h3>
-                          <span className="text-[11px] text-slate-500 font-mono">
-                            Port {remote.port || "Auto"}
-                          </span>
+          {remoteRoutes.length === 0 ? (
+            <div className="mt-6 text-center py-10 px-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+              <div className="text-3xl mb-2">🚀</div>
+              <h3 className="font-semibold text-slate-800 text-sm">No Micro-Frontends Active</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                Your workspace is currently in clean starter mode. Scaffold your first federated remote with the CLI command below:
+              </p>
+              <pre className="mt-3 inline-block font-mono text-xs bg-white px-3.5 py-2 rounded-lg border border-slate-200 text-indigo-700">
+                pnpm mfe:create myApp --path /myapp
+              </pre>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+              {remoteRoutes.map((remote) => {
+                const cleanPath = remote.urlPath || remote.path.replace(/\/\*$/, "");
+                return (
+                  <div
+                    key={remote.name}
+                    className="rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50/50 p-5 hover:border-indigo-300 hover:shadow-md transition duration-200 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-2xl">{getRemoteIcon(remote.name)}</span>
+                          <div>
+                            <h3 className="font-bold text-slate-900 text-base">{remote.name}</h3>
+                            <span className="text-[11px] text-slate-500 font-mono">
+                              Port {remote.port || "Auto"}
+                            </span>
+                          </div>
                         </div>
+                        <span className="text-[11px] bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-medium capitalize">
+                          {remote.framework || "react"}
+                        </span>
                       </div>
-                      <span className="text-[11px] bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-medium capitalize">
-                        {remote.framework || "react"}
-                      </span>
+
+                      <div className="mt-4 flex items-center gap-2">
+                        <span className="text-xs text-slate-400 font-medium">Host Route:</span>
+                        <code className="text-xs font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                          {cleanPath}/*
+                        </code>
+                      </div>
                     </div>
 
-                    <div className="mt-4 flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-medium">Host Route:</span>
-                      <code className="text-xs font-mono text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                        {cleanPath}/*
-                      </code>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
-                    <Link
-                      to={cleanPath}
-                      className="inline-flex items-center gap-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
-                    >
-                      <span>Open in Host</span>
-                      <span>&rarr;</span>
-                    </Link>
-                    {remote.port && (
-                      <a
-                        href={`http://localhost:${remote.port}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs font-medium text-slate-500 hover:text-slate-800 transition"
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                      <Link
+                        to={cleanPath}
+                        className="inline-flex items-center gap-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
                       >
-                        Standalone (: {remote.port}) &nearr;
-                      </a>
-                    )}
+                        <span>Open in Host</span>
+                        <span>&rarr;</span>
+                      </Link>
+                      {remote.port && (
+                        <a
+                          href={`http://localhost:${remote.port}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-medium text-slate-500 hover:text-slate-800 transition"
+                        >
+                          Standalone (: {remote.port}) &nearr;
+                        </a>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Developer CLI Guide */}

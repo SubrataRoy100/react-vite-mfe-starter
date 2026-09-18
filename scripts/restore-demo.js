@@ -1,40 +1,58 @@
-import { existsSync, cpSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, cpSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { resolve, join } from "node:path";
+import { generateRemotesDts } from "./generate-remotes-dts.js";
 
 const rootDir = process.cwd();
 const backupDir = resolve(rootDir, ".demo-backup");
-const demoServiceDir = resolve(rootDir, "packages", "demoService");
+const packagesDir = resolve(rootDir, "packages");
 const manifestPath = resolve(rootDir, "remotes.manifest.json");
-const hostAppPath = resolve(rootDir, "packages", "host", "src", "App.jsx");
-const hostLandingPath = resolve(rootDir, "packages", "host", "src", "pages", "LandingPage.jsx");
+const planServicesPath = resolve(rootDir, "PlanServices.md");
 
 console.log("🔄 Restoring demo service setup from .demo-backup/...\n");
 
 if (!existsSync(backupDir)) {
   console.error("❌ Error: No backup found at .demo-backup/.");
-  console.error("   Cannot restore demo service automatically.");
+  console.error("   Cannot restore demo services automatically.");
   process.exit(1);
 }
 
-const backupDemoService = resolve(backupDir, "demoService");
-if (existsSync(backupDemoService)) {
-  console.log("📦 Restoring packages/demoService...");
-  cpSync(backupDemoService, demoServiceDir, { recursive: true });
-  console.log("   ✓ packages/demoService restored.");
+// 1. Restore packages
+let restoredPackagesCount = 0;
+const backupPackagesDir = join(backupDir, "packages");
+
+const packagesToRestore = [];
+if (existsSync(backupPackagesDir)) {
+  const dirs = readdirSync(backupPackagesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => ({ name: d.name, path: join(backupPackagesDir, d.name) }));
+  packagesToRestore.push(...dirs);
 }
 
-const backupApp = resolve(backupDir, "App.jsx");
-if (existsSync(backupApp)) {
-  cpSync(backupApp, hostAppPath);
-  console.log("   ✓ packages/host/src/App.jsx restored.");
+// Also check root of backupDir for directories (legacy backwards compatibility)
+// only if no packages were found in .demo-backup/packages/
+if (packagesToRestore.length === 0) {
+  const rootBackupDirs = readdirSync(backupDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && d.name !== "packages")
+    .map((d) => ({ name: d.name, path: join(backupDir, d.name) }));
+  packagesToRestore.push(...rootBackupDirs);
 }
 
-const backupLanding = resolve(backupDir, "LandingPage.jsx");
-if (existsSync(backupLanding)) {
-  cpSync(backupLanding, hostLandingPath);
-  console.log("   ✓ packages/host/src/pages/LandingPage.jsx restored.");
+for (const pkg of packagesToRestore) {
+  const targetDir = join(packagesDir, pkg.name);
+  console.log(`📦 Restoring packages/${pkg.name}...`);
+  cpSync(pkg.path, targetDir, { recursive: true });
+  console.log(`   ✓ packages/${pkg.name} restored.`);
+  restoredPackagesCount++;
 }
 
+// 2. Restore PlanServices.md
+const backupPlanServices = resolve(backupDir, "PlanServices.md");
+if (existsSync(backupPlanServices)) {
+  cpSync(backupPlanServices, planServicesPath);
+  console.log("📄 Restored PlanServices.md.");
+}
+
+// 3. Restore remotes.manifest.json
 const backupManifest = resolve(backupDir, "remotes.manifest.json");
 if (existsSync(backupManifest)) {
   try {
@@ -43,20 +61,26 @@ if (existsSync(backupManifest)) {
       ? JSON.parse(readFileSync(manifestPath, "utf-8"))
       : {};
 
-    // Restore demoService into the current manifest without losing any other remotes
-    currentManifest.demoService = originalManifest.demoService || {
-      port: 5001,
-      path: "/demo",
-      entry: "/remoteEntry.js",
-      envVar: "VITE_DEMO_SERVICE_URL",
+    const mergedManifest = {
+      ...currentManifest,
+      ...originalManifest,
     };
 
-    writeFileSync(manifestPath, JSON.stringify(currentManifest, null, 2) + "\n", "utf-8");
-    console.log("   ✓ remotes.manifest.json restored with demoService.");
+    writeFileSync(manifestPath, JSON.stringify(mergedManifest, null, 2) + "\n", "utf-8");
+    console.log("📝 Restored remotes.manifest.json with demo services configuration.");
   } catch (err) {
     console.warn("⚠️  Could not restore remotes.manifest.json:", err.message);
   }
 }
 
+// 4. Regenerate host types and dynamic registry
+console.log("\n⚙️  Regenerating host route registry and ambient TypeScript declarations...");
+generateRemotesDts();
+console.log("   ✓ remotesRegistry.jsx updated with restored remotes.");
+console.log("   ✓ remotes.d.ts updated.");
+
 console.log("\n🎉 Demo service setup successfully restored!");
-console.log("Run 'pnpm dev' or 'pnpm build' to launch the demo environment.\n");
+console.log("---------------------------------------------------------------");
+console.log(`• Restored ${restoredPackagesCount} micro-frontend package(s).`);
+console.log("• Run 'pnpm dev' or 'pnpm build' to launch the demo environment.");
+console.log("---------------------------------------------------------------\n");

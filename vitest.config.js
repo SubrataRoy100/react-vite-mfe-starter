@@ -7,14 +7,22 @@ const hasDemoService = existsSync(
   fileURLToPath(new URL("./packages/demoService/src/App.jsx", import.meta.url))
 );
 
-const alias = {
-  "marketingMfe/App": fileURLToPath(
-    new URL("./packages/marketingMfe/src/App.jsx", import.meta.url)
-  ),
-  "authMfe/App": fileURLToPath(
-    new URL("./packages/authMfe/src/App.jsx", import.meta.url)
-  ),
-};
+const alias = {};
+
+const marketingAppPath = fileURLToPath(
+  new URL("./packages/marketingMfe/src/App.jsx", import.meta.url)
+);
+if (existsSync(marketingAppPath)) {
+  alias["marketingMfe/App"] = marketingAppPath;
+}
+
+const authAppPath = fileURLToPath(
+  new URL("./packages/authMfe/src/App.jsx", import.meta.url)
+);
+if (existsSync(authAppPath)) {
+  alias["authMfe/App"] = authAppPath;
+}
+
 if (hasDemoService) {
   alias["demoService/App"] = fileURLToPath(
     new URL("./packages/demoService/src/App.jsx", import.meta.url)

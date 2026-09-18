@@ -1,0 +1,8 @@
+{
+  "testRemote": {
+    "port": 5002,
+    "path": "/test",
+    "entry": "/remoteEntry.js",
+    "envVar": "VITE_TEST_REMOTE_URL"
+  }
+}
