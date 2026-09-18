@@ -9,4 +9,5 @@ packages/*/dist
 packages/*/node_modules
 coverage/
 .demo-backup/
+.gc-backup/
 .turbo/

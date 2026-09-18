@@ -25,7 +25,10 @@
     "reset:demo": "node scripts/reset-demo.js",
     "reset/demo": "node scripts/reset-demo.js",
     "restore:demo": "node scripts/restore-demo.js",
-    "restore/demo": "node scripts/restore-demo.js"
+    "restore/demo": "node scripts/restore-demo.js",
+    "gc": "node scripts/garbage-collector.js",
+    "gc:fix": "node scripts/garbage-collector.js --fix",
+    "gc:check": "node scripts/garbage-collector.js --check"
   },
   "keywords": [],
   "author": "",

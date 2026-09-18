@@ -1,38 +1,27 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-const hasDemoService = existsSync(
-  fileURLToPath(new URL("./packages/demoService/src/App.jsx", import.meta.url))
+const manifestPath = fileURLToPath(
+  new URL("./remotes.manifest.json", import.meta.url)
 );
-
 const alias = {};
 
-const marketingAppPath = fileURLToPath(
-  new URL("./packages/marketingMfe/src/App.jsx", import.meta.url)
-);
-if (existsSync(marketingAppPath)) {
-  alias["marketingMfe/App"] = marketingAppPath;
-}
-
-const authAppPath = fileURLToPath(
-  new URL("./packages/authMfe/src/App.jsx", import.meta.url)
-);
-if (existsSync(authAppPath)) {
-  alias["authMfe/App"] = authAppPath;
-}
-
-if (hasDemoService) {
-  alias["demoService/App"] = fileURLToPath(
-    new URL("./packages/demoService/src/App.jsx", import.meta.url)
-  );
-  alias["demoService/MfeDevWidget"] = fileURLToPath(
-    new URL(
-      "./packages/demoService/src/components/MfeDevWidget.jsx",
-      import.meta.url
-    )
-  );
+if (existsSync(manifestPath)) {
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
+    for (const name of Object.keys(manifest)) {
+      const remoteAppPath = fileURLToPath(
+        new URL(`./packages/${name}/src/App.jsx`, import.meta.url)
+      );
+      if (existsSync(remoteAppPath)) {
+        alias[`${name}/App`] = remoteAppPath;
+      }
+    }
+  } catch {
+    // Ignored
+  }
 }
 
 export default defineConfig({
