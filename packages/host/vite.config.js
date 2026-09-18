@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import federation from "@originjs/vite-plugin-federation";
+import * as mf from "@module-federation/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -21,22 +21,28 @@ const remotes = Object.fromEntries(
     return [
       name,
       {
-        external: `Promise.resolve((typeof window !== 'undefined' && window.__MFE_RUNTIME_CONFIG__ && window.__MFE_RUNTIME_CONFIG__[${JSON.stringify(name)}]) || ${JSON.stringify(fallbackUrl)})`,
-        externalType: "promise",
+        type: "module",
+        name,
+        entry: fallbackUrl,
+        entryGlobalName: name,
+        shareScope: "default",
       },
     ];
   })
 );
 
-const hostPort = Number(process.env.HOST_PORT || remotesManifest?.host?.port || 5000);
+const hostPort = Number(
+  process.env.HOST_PORT || remotesManifest?.host?.port || 5000
+);
 
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
-    federation({
+    mf.federation({
       name: "host",
       remotes,
+      dts: false,
       shared: DEFAULT_SHARED_DEPS,
     }),
   ],

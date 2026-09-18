@@ -1,30 +1,30 @@
 {
-  "name": "demoService",
+  "name": "authMfe",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "watch": "vite build --watch --mode development",
-    "preview": "vite preview --port 5001 --strictPort",
     "lint": "oxlint",
+    "preview": "vite preview --port 5003 --strictPort",
+    "watch": "vite build --watch --mode development",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@subrataroy100/mfe-shared": "workspace:*",
-    "@tailwindcss/vite": "^4.3.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router": "^8.4.0",
-    "tailwindcss": "^4.3.3"
+    "react-router": "^8.4.0"
   },
   "devDependencies": {
-    "@originjs/vite-plugin-federation": "^1.4.1",
+    "@module-federation/vite": "^1.22.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "tailwindcss": "^4.3.3",
     "vite": "^8.3.0"
   }
 }

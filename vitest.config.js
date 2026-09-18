@@ -7,7 +7,14 @@ const hasDemoService = existsSync(
   fileURLToPath(new URL("./packages/demoService/src/App.jsx", import.meta.url))
 );
 
-const alias = {};
+const alias = {
+  "marketingMfe/App": fileURLToPath(
+    new URL("./packages/marketingMfe/src/App.jsx", import.meta.url)
+  ),
+  "authMfe/App": fileURLToPath(
+    new URL("./packages/authMfe/src/App.jsx", import.meta.url)
+  ),
+};
 if (hasDemoService) {
   alias["demoService/App"] = fileURLToPath(
     new URL("./packages/demoService/src/App.jsx", import.meta.url)

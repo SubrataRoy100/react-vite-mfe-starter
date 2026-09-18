@@ -11,12 +11,12 @@ describe("defineRemoteConfig", () => {
 
   it("auto-resolves port from remotes.manifest.json if omitted", () => {
     const configFn = defineRemoteConfig({
-      name: "demoService",
+      name: "marketingMfe",
       exposes: { "./App": "./src/App.jsx" },
     });
     const resolved = configFn({ mode: "development", command: "serve" });
-    expect(resolved.server.port).toBe(5001);
-    expect(resolved.preview.port).toBe(5001);
+    expect(resolved.server.port).toBe(5002);
+    expect(resolved.preview.port).toBe(5002);
     expect(resolved.preview.headers["Access-Control-Allow-Origin"]).toBe("*");
   });
 
@@ -129,12 +129,12 @@ describe("defineRemoteConfig", () => {
 
   it("resolves port from custom manifestPath", () => {
     const configFn = defineRemoteConfig({
-      name: "demoService",
+      name: "marketingMfe",
       manifestPath: "remotes.manifest.json",
     });
 
     const resolved = configFn({ mode: "development", command: "serve" });
-    expect(resolved.server.port).toBe(5001);
+    expect(resolved.server.port).toBe(5002);
   });
 
   it("preserves unhashed remoteEntry.js naming even when user supplies custom build.rollupOptions", () => {

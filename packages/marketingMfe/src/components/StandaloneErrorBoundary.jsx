@@ -32,7 +32,7 @@ export default class StandaloneErrorBoundary extends React.Component {
             <div className="flex-1">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-base font-bold text-rose-900">
-                  Demo Service Exception Caught
+                  Marketing Service Exception Caught
                 </h3>
                 <span className="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-semibold">
                   Standalone Error Boundary
@@ -40,8 +40,9 @@ export default class StandaloneErrorBoundary extends React.Component {
               </div>
 
               <p className="mt-1 text-xs text-rose-700 leading-relaxed">
-                An uncaught runtime exception occurred inside the remote service.
-                In standalone development mode, this boundary prevents full page collapse.
+                An uncaught runtime exception occurred inside the remote
+                service. In standalone development mode, this boundary prevents
+                full page collapse.
               </p>
 
               {this.state.error?.message && (

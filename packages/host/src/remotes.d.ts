@@ -4,17 +4,14 @@
  * DO NOT EDIT DIRECTLY.
  */
 
-declare module "demoService/App" {
+declare module "marketingMfe/App" {
   import { ComponentType } from "react";
   const Component: ComponentType<any>;
   export default Component;
 }
 
-declare module "demoService/MfeDevWidget" {
+declare module "authMfe/App" {
   import { ComponentType } from "react";
-  export interface MfeDevWidgetProps {
-    title?: string;
-  }
-  const MfeDevWidget: ComponentType<MfeDevWidgetProps>;
-  export default MfeDevWidget;
+  const Component: ComponentType<any>;
+  export default Component;
 }

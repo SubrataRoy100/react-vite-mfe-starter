@@ -1,8 +1,14 @@
 {
-  "demoService": {
-    "port": 5001,
-    "path": "/demo",
+  "marketingMfe": {
+    "port": 5002,
+    "path": "/marketingMfe",
     "entry": "/remoteEntry.js",
-    "envVar": "VITE_DEMO_SERVICE_URL"
+    "envVar": "VITE_MARKETING_MFE_URL"
+  },
+  "authMfe": {
+    "port": 5003,
+    "path": "/authMfe",
+    "entry": "/remoteEntry.js",
+    "envVar": "VITE_AUTH_MFE_URL"
   }
 }

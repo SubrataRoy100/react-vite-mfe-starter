@@ -23,7 +23,7 @@ export default defineConfig({
     "react/jsx-runtime",
     "vite",
     "@tailwindcss/vite",
-    "@originjs/vite-plugin-federation",
+    "@module-federation/vite",
     "@vitejs/plugin-react",
   ],
   async onSuccess() {
@@ -79,7 +79,11 @@ export declare function useMfeEventListener<T = MfeEventPayload>(
   handler: (detail: T) => void
 ): void;
 `;
-    writeFileSync(resolve(distDir, "events", "index.d.ts"), eventsIndexDts, "utf-8");
+    writeFileSync(
+      resolve(distDir, "events", "index.d.ts"),
+      eventsIndexDts,
+      "utf-8"
+    );
 
     // 2. dist/adapters/index.d.ts
     const adaptersIndexDts = `import type React from "react";
@@ -145,7 +149,11 @@ export declare function useMfeEventListener<T = MfeEventPayload>(
   handler: (detail: T) => void
 ): void;
 `;
-    writeFileSync(resolve(distDir, "adapters", "index.d.ts"), adaptersIndexDts, "utf-8");
+    writeFileSync(
+      resolve(distDir, "adapters", "index.d.ts"),
+      adaptersIndexDts,
+      "utf-8"
+    );
 
     // 3. dist/index.d.ts
     const rootIndexDts = `export * from "./events/index.js";
