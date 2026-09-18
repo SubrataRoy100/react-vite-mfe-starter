@@ -107,6 +107,8 @@ export function createRemote({ name, framework = "react", routePath = null }) {
           }
         : {}),
       ...(framework === "vue" ? { "@vitejs/plugin-vue": "^5.2.1" } : {}),
+      "@tailwindcss/vite": "^4.0.0",
+      "tailwindcss": "^4.0.0",
       oxlint: "^1.81.0",
       vite: "^8.3.0",
     },
@@ -144,7 +146,7 @@ export default defineRemoteConfig({
   writeFileSync(join(packageDir, "index.html"), htmlContent);
 
   // 4. src/index.css
-  writeFileSync(join(packageDir, "src", "index.css"), `/* ${name} styles */\n`);
+  writeFileSync(join(packageDir, "src", "index.css"), `@import "tailwindcss";\n`);
 
   // 5. Standalone Error Boundary
   const errorBoundaryContent = `import React from "react";
@@ -176,7 +178,8 @@ export default class StandaloneErrorBoundary extends React.Component {
 
   // 6. Root component (App.jsx / App.js / App.vue)
   if (framework === "react") {
-    const appContent = `import React from "react";
+    const appContent = `import "./index.css";
+import React from "react";
 import { Routes, Route } from "react-router";
 
 export default function App() {
@@ -185,10 +188,10 @@ export default function App() {
       <Route
         path="/"
         element={
-          <div style={{ padding: "1.5rem", borderRadius: "8px", background: "#f8fafc", border: "1px solid #e2e8f0" }}>
-            <h2 style={{ color: "#0f172a", margin: "0 0 0.5rem" }}>🚀 ${name} Remote Micro-Frontend</h2>
-            <p style={{ color: "#64748b", margin: 0 }}>
-              Mounted successfully at <code>${finalPath}</code>.
+          <div className="p-6 rounded-xl bg-slate-50 border border-slate-200 text-slate-900">
+            <h2 className="text-xl font-bold mb-2">🚀 ${name} Remote Micro-Frontend</h2>
+            <p className="text-slate-600">
+              Mounted successfully at <code>${finalPath}</code> with Tailwind CSS styling.
             </p>
           </div>
         }
