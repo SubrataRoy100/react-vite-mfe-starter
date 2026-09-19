@@ -68,7 +68,7 @@ describe("scripts/manifest", () => {
     });
     expect(commands).toHaveLength(1);
     expect(commands[0]).toMatchObject({
-      command: "pnpm --filter marketingMfe dev",
+      command: "pnpm --filter marketing-mfe dev",
       name: "marketingMfe",
     });
   });

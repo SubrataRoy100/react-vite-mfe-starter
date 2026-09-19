@@ -24,12 +24,39 @@ export function getTargetedManifest(manifest, targetName) {
   return { [targetName]: manifest[targetName] };
 }
 
+export function resolvePackageName(remoteName, manifest, rootDir = process.cwd()) {
+  const cfg = manifest?.[remoteName];
+  const dirName =
+    cfg?.dir ||
+    cfg?.package ||
+    remoteName.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+
+  const candidates = [
+    resolve(rootDir, "apps", dirName, "package.json"),
+    resolve(rootDir, "apps", remoteName, "package.json"),
+    resolve(rootDir, "packages", remoteName, "package.json"),
+  ];
+
+  for (const cand of candidates) {
+    if (existsSync(cand)) {
+      try {
+        const pkg = JSON.parse(readFileSync(cand, "utf-8"));
+        if (pkg.name) return pkg.name;
+      } catch {
+        // Ignored
+      }
+    }
+  }
+
+  return cfg?.package || cfg?.dir || remoteName;
+}
+
 export function getBuildFilterArgs(manifest) {
   const remotes = getRemoteNames(manifest);
   if (remotes.length === 0) return [];
   return remotes.flatMap((name) => [
     "--filter",
-    manifest[name]?.package || manifest[name]?.dir || name,
+    resolvePackageName(name, manifest),
   ]);
 }
 
@@ -41,8 +68,7 @@ export function getDevCommands(manifest) {
 
   remotes.forEach((remote, index) => {
     const color = COLOR_PALETTE[index % COLOR_PALETTE.length];
-    const pkgName =
-      manifest[remote]?.package || manifest[remote]?.dir || remote;
+    const pkgName = resolvePackageName(remote, manifest);
 
     // Single dev command per remote using Vite dev server and live Module Federation HMR
     commands.push({
