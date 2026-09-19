@@ -91,12 +91,27 @@ export default defineRemoteConfig({
 
 The Host Shell acts as the primary orchestrator, providing layout navigation, error boundaries, and dynamic mount points.
 
-### Preventing Sequential Wildcard Hijacking
-When mounting multiple micro-frontends dynamically, routing collisions can occur if routes are evaluated sequentially without specificity sorting. For example, registering a root route `/` with a catch-all wildcard `/*` ahead of explicit sub-paths (e.g., `/auth/*`) will hijack all incoming requests.
+### Preventing Sequential Wildcard Hijacking & Route Collisions
+When mounting multiple micro-frontends dynamically, routing collisions can occur if routes are evaluated sequentially without deterministic specificity sorting. For example, registering a root route `/` with a catch-all wildcard `/*` ahead of explicit sub-paths (e.g., `/auth/*`), or placing a dynamic parameter route (e.g., `/users/:id/*`) before an explicit sibling route (e.g., `/users/profile/*`), will hijack requests.
 
-Our automation (`scripts/generate-remotes-dts.js`) enforces two strict guarantees:
-1. **Specificity Sorting:** Routes are sorted descending by segment depth and string length. Exact and deep routes (e.g., `/marketing/special/*`, `/auth/*`) always mount before shallower routes (e.g., `/*`).
-2. **Wildcard Deduplication:** Root paths (`/`) do not declare redundant greedy catch-alls that swallow sibling applications.
+Our automation (`scripts/generate-remotes-dts.js`) enforces **Weighted Specificity Scoring**:
+
+Each remote path is evaluated and assigned an integer specificity score:
+- **Static segment (`users`, `profile`):** `+100` points each
+- **Dynamic parameter segment (`:id`):** `+40` points each
+- **Wildcard segment (`*`):** `+5` points each
+- **Segment depth bonus:** `+10` points per path segment
+- **String length tie-breaker:** Secondary sort key
+
+$$\text{Score} = (\text{Static} \times 100) + (\text{Params} \times 40) + (\text{Wildcards} \times 5) + (\text{Depth} \times 10)$$
+
+#### Concrete Sorting Example:
+1. `/users/profile/*` $\rightarrow 2 \times 100 + 1 \times 5 + 3 \times 10 = 235$ (Evaluated **1st**)
+2. `/users/:userId/*` $\rightarrow 1 \times 100 + 1 \times 40 + 1 \times 5 + 3 \times 10 = 175$ (Evaluated **2nd**)
+3. `/users/*` $\rightarrow 1 \times 100 + 1 \times 5 + 2 \times 10 = 125$ (Evaluated **3rd**)
+4. `/*` $\rightarrow 0 + 1 \times 5 + 1 \times 10 = 15$ (Evaluated **last**)
+
+This guarantees that deep, exact static routes always precede dynamic or wildcard routes, completely eliminating sequential route hijacking across independent micro-frontend teams.
 
 ```jsx
 // packages/host/src/App.jsx
@@ -168,12 +183,28 @@ The file `remotes.manifest.json` is the sole authoritative configuration for all
 
 ---
 
-## 5. Fault Isolation & Error Boundaries
+## 5. Fault Isolation & Telemetry (APM)
+ 
+ Every mounted micro-frontend is isolated inside a `<RemoteErrorBoundary>`. If a remote throws an unhandled exception or fails to load over the network:
+ 1. The error boundary catches the exception locally.
+ 2. The faulty remote renders a recovery UI with diagnostic details and a retry button.
+ 3. The Host shell, main navigation bar, and all other mounted micro-frontends remain fully operational.
+ 4. **Enterprise Observability & APM:** The boundary dispatches failure telemetry through three complementary channels:
+    - **Custom Hook / Props:** `<RemoteErrorBoundary onError={(err, info, remoteName) => ...} />`
+    - **Global Telemetry Handler:** Configurable via `setupMfeTelemetry((event) => ...)` (e.g. Sentry, Datadog, New Relic).
+    - **Window Telemetry Event:** Automatically dispatches `mfe:telemetry:error` on `window` containing error stack, componentStack, remoteName, and timestamp.
 
-Every mounted micro-frontend is isolated inside a `<RemoteErrorBoundary>`. If a remote throws an unhandled exception or fails to load over the network:
-1. The error boundary catches the exception locally.
-2. The faulty remote renders a recovery UI with diagnostic details and a retry button.
-3. The Host shell, main navigation bar, and all other mounted micro-frontends remain fully operational.
+```javascript
+// Setup APM handler in Host main.jsx
+import { setupMfeTelemetry } from "./utils/telemetry.js";
+
+setupMfeTelemetry(({ error, componentStack, remoteName, timestamp }) => {
+  Sentry.captureException(error, {
+    tags: { mfe: remoteName },
+    extra: { componentStack, timestamp },
+  });
+});
+```
 
 ---
 

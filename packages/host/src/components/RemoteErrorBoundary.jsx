@@ -1,5 +1,7 @@
 import React from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { sendMfeEvent } from "@subrataroy100/mfe-shared";
+
 
 /**
  * Fallback card rendered when a federated remote module fails to load or crashes.
@@ -53,15 +55,69 @@ function RemoteErrorFallback({ error, resetErrorBoundary, remoteName = "Remote S
   );
 }
 
-export default function RemoteErrorBoundary({ children, remoteName = "Remote Service", serviceName, onReset }) {
+/**
+ * Isolated Error Boundary for Micro-Frontends with enterprise telemetry forwarding.
+ *
+ * @param {object} props
+ * @param {React.ReactNode} props.children
+ * @param {string} [props.remoteName] Display name of the micro-frontend
+ * @param {string} [props.serviceName] Package name of the service
+ * @param {() => void} [props.onReset] Reset callback
+ * @param {(error: Error, info: { componentStack?: string }, payload: object) => void} [props.onError] Local error handler
+ */
+export function RemoteErrorBoundary({
+  children,
+  remoteName = "Remote Service",
+  serviceName,
+  onReset,
+  onError,
+}) {
+  const handleError = (error, info) => {
+    const payload = {
+      remoteName,
+      serviceName: serviceName || remoteName.toLowerCase().replace(/[^a-z0-9]/g, ""),
+      error: error?.message || String(error),
+      stack: error?.stack,
+      componentStack: info?.componentStack,
+      timestamp: Date.now(),
+      url: typeof window !== "undefined" ? window.location?.href : "",
+    };
+
+    // 1. Invoke local prop onError if provided
+    try {
+      onError?.(error, info, payload);
+    } catch (err) {
+      console.error("[RemoteErrorBoundary] onError handler threw:", err);
+    }
+
+    // 2. Invoke global telemetry handler (e.g. Sentry / Datadog integration)
+    if (typeof window !== "undefined" && typeof window.__MFE_TELEMETRY_HANDLER__ === "function") {
+      try {
+        window.__MFE_TELEMETRY_HANDLER__(payload);
+      } catch (err) {
+        console.error("[RemoteErrorBoundary] Global telemetry handler threw:", err);
+      }
+    }
+
+    // 3. Broadcast decoupled event across the MFE event bus
+    try {
+      sendMfeEvent("mfe:telemetry:error", payload);
+    } catch {
+      // Best-effort telemetry
+    }
+  };
+
   return (
     <ErrorBoundary
       fallbackRender={(props) => (
         <RemoteErrorFallback {...props} remoteName={remoteName} serviceName={serviceName} />
       )}
       onReset={onReset}
+      onError={handleError}
     >
       {children}
     </ErrorBoundary>
   );
 }
+
+export default RemoteErrorBoundary;

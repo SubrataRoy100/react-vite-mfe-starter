@@ -55,6 +55,10 @@ export interface EventBusOptions {
   namespace?: string;
 }
 
+export interface MfeListenOptions {
+  replayLast?: boolean;
+}
+
 export interface ScopedCoreEventBus {
   readonly sender: string;
   readonly namespace: string | null;
@@ -63,9 +67,17 @@ export interface ScopedCoreEventBus {
   send<T extends MfeEventPayload = MfeEventPayload>(eventName: string, payload?: T): void;
   listen<K extends keyof MfeEventMap>(
     eventName: K,
-    handler: (detail: MfeEventMap[K] & MfeEventPayload) => void
+    handler: (detail: MfeEventMap[K] & MfeEventPayload) => void,
+    options?: MfeListenOptions
   ): () => void;
-  listen<T = MfeEventPayload>(eventName: string, handler: (detail: T) => void): () => void;
+  listen<T = MfeEventPayload>(
+    eventName: string,
+    handler: (detail: T) => void,
+    options?: MfeListenOptions
+  ): () => void;
+  setState<T = any>(key: string, value: T): void;
+  getState<T = any>(key: string): T | undefined;
+  listenState<T = any>(key: string, handler: (value: T, detail: any) => void): () => void;
 }
 
 export declare function createMfeEventBus(options?: EventBusOptions): ScopedCoreEventBus;
@@ -81,9 +93,19 @@ export declare function sendMfeEvent<T extends MfeEventPayload = MfeEventPayload
 
 export declare function listenMfeEvent<K extends keyof MfeEventMap>(
   eventName: K,
-  handler: (detail: MfeEventMap[K] & MfeEventPayload) => void
+  handler: (detail: MfeEventMap[K] & MfeEventPayload) => void,
+  options?: MfeListenOptions
 ): () => void;
 export declare function listenMfeEvent<T = MfeEventPayload>(
   eventName: string,
-  handler: (detail: T) => void
+  handler: (detail: T) => void,
+  options?: MfeListenOptions
 ): () => void;
+
+export declare function getMfeState<T = any>(key: string): T | undefined;
+export declare function setMfeState<T = any>(key: string, value: T, sender?: string): void;
+export declare function listenMfeState<T = any>(
+  key: string,
+  handler: (value: T, detail: any) => void
+): () => void;
+export declare function clearMfeEventStore(): void;

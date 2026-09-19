@@ -4,6 +4,8 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import App from "./App.jsx";
 
+import { setupMfeTelemetry } from "./utils/telemetry.js";
+
 // Mock LandingPage
 vi.mock("./pages/LandingPage", () => ({
   default: () => <div data-testid="landing-page">Host Landing Page</div>,
@@ -61,9 +63,11 @@ describe("Host App routing and isolation", () => {
     expect(await screen.findByTestId("healthy-remote")).toBeDefined();
   });
 
-  it("isolates runtime errors in remotes using RemoteErrorBoundary without crashing the host shell", async () => {
+  it("isolates runtime errors in remotes using RemoteErrorBoundary and forwards telemetry", async () => {
     // Suppress console.error in test output for the intentional test crash
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const telemetrySpy = vi.fn();
+    setupMfeTelemetry({ onRemoteError: telemetrySpy });
 
     render(
       <MemoryRouter initialEntries={["/crash"]}>
@@ -75,6 +79,16 @@ describe("Host App routing and isolation", () => {
     expect(screen.getByText(/MFE Boundary Isolated/i)).toBeDefined();
     expect(screen.getByText(/Simulated remote crash exception/i)).toBeDefined();
 
+    // Verify telemetry hook captured diagnostic data
+    expect(telemetrySpy).toHaveBeenCalledTimes(1);
+    expect(telemetrySpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        remoteName: "crashMfe",
+        error: "Simulated remote crash exception",
+      })
+    );
+
+    delete window.__MFE_TELEMETRY_HANDLER__;
     spy.mockRestore();
   });
 

@@ -57,20 +57,40 @@ import {
   DEFAULT_SHARED_DEPS,
 } from "../packages/shared/src/vite/index.js";
 
-// 1. Type assertions: Scoped Event Bus
+// 1. Type assertions: Scoped Event Bus & State
 const scopedBus: ScopedEventBus = createMfeEventBus({ sender: "AuthRemote", namespace: "auth" });
 scopedBus.send("mfe:notification", { message: "User authenticated" });
 const unsubBus = scopedBus.listen("mfe:ping", (detail: { message?: string }) => {
   console.log(detail.message);
-});
+}, { replayLast: true });
 unsubBus();
 
-// 2. Type assertions: Global typed events
+scopedBus.setState("session", { userId: "user-123" });
+const currentSession = scopedBus.getState<{ userId: string }>("session");
+console.log(currentSession?.userId);
+
+// 2. Type assertions: Global typed events & Replay
 sendMfeEvent("mfe:notification", { message: "Global event" });
 const unsubGlobal = listenMfeEvent("mfe:ping", (detail: { count?: number; message?: string }) => {
   console.log(detail.count, detail.message);
-});
+}, { replayLast: true });
 unsubGlobal();
+
+// 2b. Type assertions: Global State
+import {
+  useMfeEventState,
+  getMfeState,
+  setMfeState,
+  listenMfeState,
+} from "../packages/shared/src/index.js";
+
+setMfeState("theme", "dark");
+const currentTheme: string | undefined = getMfeState<string>("theme");
+console.log(currentTheme);
+const unsubState = listenMfeState<string>("theme", (val) => {
+  console.log(val);
+});
+unsubState();
 
 // 3. Type assertions: Shadow DOM on UniversalRemoteMount
 const mountProps: UniversalRemoteMountProps = {

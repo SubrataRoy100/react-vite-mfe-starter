@@ -138,7 +138,25 @@ export function normalizeRoutePath(rawPath, remoteName = "remote") {
     : `${cleanPath}/*`;
 
   const segments = cleanPath.split("/").filter(Boolean);
-  const score = 100 + segments.length * 10 + cleanPath.length;
+  
+  // Weighted specificity scoring:
+  // - Static exact segments: +100 points
+  // - Dynamic parameterized segments (:id): +40 points
+  // - Wildcard segments (*): +5 points
+  // - Segment depth multiplier: +10 per segment
+  // - Minor tiebreaker: string length
+  let segmentScore = 0;
+  for (const seg of segments) {
+    if (seg.startsWith(":")) {
+      segmentScore += 40;
+    } else if (seg === "*") {
+      segmentScore += 5;
+    } else {
+      segmentScore += 100;
+    }
+  }
+
+  const score = segmentScore + segments.length * 10 + cleanPath.length;
 
   return {
     path: normalizedPath,

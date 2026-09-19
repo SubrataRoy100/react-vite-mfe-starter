@@ -150,5 +150,26 @@ describe("Route Specificity and Multi-Path Resolution", () => {
 
       warnSpy.mockRestore();
     });
+
+    it("ranks static subpaths higher than dynamic parameterized routes at the same depth", () => {
+      const manifest = {
+        dynamicUserApp: {
+          port: 5010,
+          path: "/users/:userId",
+        },
+        staticProfileApp: {
+          port: 5011,
+          path: "/users/profile",
+        },
+      };
+
+      const routes = resolveRemoteRoutes(manifest);
+
+      // /users/profile/* MUST precede /users/:userId/*
+      expect(routes[0].path).toBe("/users/profile/*");
+      expect(routes[0].name).toBe("staticProfileApp");
+      expect(routes[1].path).toBe("/users/:userId/*");
+      expect(routes[1].name).toBe("dynamicUserApp");
+    });
   });
 });

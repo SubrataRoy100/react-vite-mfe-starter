@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { sendMfeEvent, useMfeEventListener, MFE_EVENTS } from "./mfe-events.js";
+import {
+  sendMfeEvent,
+  useMfeEventListener,
+  useMfeEventState,
+  MFE_EVENTS,
+} from "./mfe-events.js";
 
 describe("Cross-MFE Event Bus (mfe-events)", () => {
   beforeEach(() => {
@@ -190,6 +195,47 @@ describe("Cross-MFE Event Bus (mfe-events)", () => {
 
       unsubNotif.unmount();
       unsubNav.unmount();
+    });
+
+    it("replays last emitted event to late subscribers when replayLast: true", () => {
+      // 1. Dispatch event before the subscriber even exists
+      sendMfeEvent(MFE_EVENTS.NOTIFICATION, { message: "Early notification before mount" });
+
+      const lateSubscriber = vi.fn();
+
+      // 2. Late subscriber mounts with replayLast: true
+      const { unmount } = renderHook(() =>
+        useMfeEventListener(MFE_EVENTS.NOTIFICATION, lateSubscriber, { replayLast: true })
+      );
+
+      // 3. Must be invoked immediately with the previously dispatched payload
+      expect(lateSubscriber).toHaveBeenCalledTimes(1);
+      expect(lateSubscriber).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Early notification before mount" })
+      );
+
+      unmount();
+    });
+
+    it("manages cross-MFE reactive shared state via useMfeEventState", () => {
+      const { result: hookA } = renderHook(() => useMfeEventState("theme", "light"));
+      const { result: hookB } = renderHook(() => useMfeEventState("theme", "light"));
+
+      expect(hookA.current[0]).toBe("light");
+      expect(hookB.current[0]).toBe("light");
+
+      // Mutate from Hook A
+      act(() => {
+        hookA.current[1]("dark");
+      });
+
+      // Both Hook A and Hook B reflect synchronized state
+      expect(hookA.current[0]).toBe("dark");
+      expect(hookB.current[0]).toBe("dark");
+
+      // Late-mounting component receives current state immediately
+      const { result: hookC } = renderHook(() => useMfeEventState("theme", "light"));
+      expect(hookC.current[0]).toBe("dark");
     });
   });
 });

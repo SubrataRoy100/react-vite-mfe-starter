@@ -11,9 +11,9 @@ import { defineConfig } from "vite";
  */
 export const FRAMEWORK_SHARED_DEPS = {
   react: {
-    react: { singleton: true, requiredVersion: false },
-    "react-dom": { singleton: true, requiredVersion: false },
-    "react-router": { singleton: true, requiredVersion: false },
+    react: { singleton: true, requiredVersion: "^19.0.0" },
+    "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
+    "react-router": { singleton: true, requiredVersion: "^8.0.0" },
   },
   vue: {
     vue: { singleton: true },

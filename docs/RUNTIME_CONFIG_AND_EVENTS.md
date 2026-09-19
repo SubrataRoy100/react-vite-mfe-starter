@@ -72,8 +72,69 @@ const unsubscribe = authBus.listen("user:logout", (payload) => {
 unsubscribe();
 ```
 
-### React Hook Integration
-Inside React components, use `useMfeEventListener` for automatic subscription management and unmount cleanup:
+### Event Replay Across Asynchronously Loaded Remotes
+In micro-frontend architectures, remotes are loaded on-demand via route navigation or lazy code splitting. If a producer emits an important event before a consumer remote is fetched and mounted, the consumer will miss the message by default.
+
+To solve this, `@subrataroy100/mfe-shared` supports **Event Replay** via `{ replayLast: true }`:
+
+```javascript
+// Auth remote mounted at startup sends login status
+authBus.send("auth:user_session", { userId: "usr_123", role: "editor" });
+
+// ... minutes later, user navigates to /analytics which lazy-loads Analytics remote:
+const unsub = analyticsBus.listen("auth:user_session", (session) => {
+  // Immediately called with the cached { userId: "usr_123", role: "editor" } payload!
+  initAnalytics(session.userId);
+}, { replayLast: true });
+```
+
+### Reactive Cross-MFE State (`useMfeEventState`)
+When micro-frontends need shared state synchronization (such as active organization, current theme, or user profile) without bundling monolithic state libraries across independent builds, use `useMfeEventState`:
+
+```jsx
+// In Navigation MFE:
+import { useMfeEventState } from "@subrataroy100/mfe-shared";
+
+export function ThemePicker() {
+  const [theme, setTheme] = useMfeEventState("app:theme", "light");
+
+  return (
+    <button onClick={() => setTheme(prev => prev === "light" ? "dark" : "light")}>
+      Toggle Theme (Current: {theme})
+    </button>
+  );
+}
+
+// In Dashboard MFE (completely separate build/bundle):
+import { useMfeEventState } from "@subrataroy100/mfe-shared";
+
+export function Dashboard() {
+  // Automatically syncs whenever any remote updates "app:theme"
+  const [theme] = useMfeEventState("app:theme", "light");
+
+  return <div className={`dashboard-theme-${theme}`}>Dashboard Content</div>;
+}
+```
+
+#### Imperative State Access
+For non-React code, pure vanilla JS micro-frontends, or outside the component lifecycle:
+```javascript
+import { getMfeState, setMfeState, listenMfeState } from "@subrataroy100/mfe-shared";
+
+// Set state imperatively
+setMfeState("app:user", { id: 42, name: "Alice" });
+
+// Read current value synchronously
+const currentUser = getMfeState("app:user");
+
+// Listen for updates
+const unsubscribe = listenMfeState("app:user", (user) => {
+  console.log("User changed to:", user);
+});
+```
+
+### React Hook Event Listener (`useMfeEventListener`)
+Inside React components, use `useMfeEventListener` for automatic subscription management, optional replay, and unmount cleanup:
 
 ```jsx
 import React, { useState } from "react";
@@ -82,10 +143,14 @@ import { useMfeEventListener, sendMfeEvent, MFE_EVENTS } from "@subrataroy100/mf
 export function HostNotificationFeed() {
   const [messages, setMessages] = useState([]);
 
-  // Automatically cleans up listener on component unmount
-  useMfeEventListener(MFE_EVENTS.NOTIFICATION, (detail) => {
-    setMessages((prev) => [...prev, detail.message]);
-  });
+  // Automatically cleans up listener on component unmount and replays if available
+  useMfeEventListener(
+    MFE_EVENTS.NOTIFICATION,
+    (detail) => {
+      setMessages((prev) => [...prev, detail.message]);
+    },
+    { replayLast: true }
+  );
 
   const handleBroadcast = () => {
     sendMfeEvent(MFE_EVENTS.PING, {

@@ -24,6 +24,25 @@ if (existsSync(manifestPath)) {
   }
 }
 
+alias["@subrataroy100/mfe-shared/events/core"] = fileURLToPath(
+  new URL("./packages/shared/src/events/mfe-events-core.js", import.meta.url)
+);
+alias["@subrataroy100/mfe-shared/events"] = fileURLToPath(
+  new URL("./packages/shared/src/events/mfe-events.js", import.meta.url)
+);
+alias["@subrataroy100/mfe-shared/adapters"] = fileURLToPath(
+  new URL("./packages/shared/src/adapters/index.js", import.meta.url)
+);
+alias["@subrataroy100/mfe-shared/constants"] = fileURLToPath(
+  new URL("./packages/shared/src/constants/config.js", import.meta.url)
+);
+alias["@subrataroy100/mfe-shared/vite"] = fileURLToPath(
+  new URL("./packages/shared/src/vite/index.js", import.meta.url)
+);
+alias["@subrataroy100/mfe-shared"] = fileURLToPath(
+  new URL("./packages/shared/src/index.js", import.meta.url)
+);
+
 export default defineConfig({
   plugins: [react()],
   resolve: {

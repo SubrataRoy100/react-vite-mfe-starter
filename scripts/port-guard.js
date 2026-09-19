@@ -55,8 +55,30 @@ export function checkAndFreePorts(ports = [], autoKill = true) {
     }
 
     for (const pid of pids) {
-      let procName = "";
-      if (isDarwin) {
+      const isDevProcess = (name) => {
+        if (!name) return true; // If unidentified, proceed with caution
+        const lower = name.toLowerCase();
+        return (
+          lower.includes("node") ||
+          lower.includes("vite") ||
+          lower.includes("pnpm") ||
+          lower.includes("npm") ||
+          lower.includes("bun") ||
+          lower.includes("deno") ||
+          lower.includes("esbuild")
+        );
+      };
+
+      if (isWindows) {
+        try {
+          procName = execSync(
+            `powershell -NoProfile -Command "(Get-Process -Id ${pid} -ErrorAction SilentlyContinue).ProcessName"`,
+            { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }
+          ).trim();
+        } catch {
+          procName = "";
+        }
+      } else {
         try {
           procName = execSync(`ps -p ${pid} -o comm=`, {
             encoding: "utf-8",
@@ -81,7 +103,15 @@ export function checkAndFreePorts(ports = [], autoKill = true) {
 
       busyPorts.push({ port, pid, command: procName });
 
+      const forceKill = process.argv.includes("--force");
       if (autoKill) {
+        if (procName && !isDevProcess(procName) && !forceKill) {
+          console.warn(
+            `[port-guard] ⚠️ Port ${port} is occupied by non-dev process '${procName}' (PID ${pid}). Skipping termination for safety. (Run with --force to override).`
+          );
+          continue;
+        }
+
         try {
           console.log(
             `[port-guard] ⚠️ Port ${port} is occupied by PID ${pid}${procName ? ` (${procName})` : ""}. Terminating process...`
