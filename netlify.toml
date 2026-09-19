@@ -1,10 +1,17 @@
-# Netlify deployment configuration.
-#
+# Netlify deployment configuration for Host orchestration shell
+
+[build]
+  command = "pnpm build:host"
+  publish = "packages/host/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "12.4.2"
+
 # Module Federation requires remoteEntry.js to keep a stable, un-hashed
 # filename, which means it must NEVER be cached — every deploy of a remote
 # needs consuming hosts to pick up the new manifest immediately. Everything
-# under /assets/*, by contrast, is content-hashed by Vite and safe to cache
-# forever.
+# under /assets/*, by contrast, is content-hashed by Vite and safe to cache forever.
 
 [[headers]]
   for = "/remoteEntry.js"

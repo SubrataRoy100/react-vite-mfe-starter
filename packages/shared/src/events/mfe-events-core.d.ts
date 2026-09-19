@@ -15,17 +15,6 @@ export interface MfePongDetail extends MfeEventPayload {
   memory?: string;
 }
 
-export interface MfeCartUpdateDetail extends MfeEventPayload {
-  itemCount: number;
-  total: number;
-}
-
-export interface MfeOrderPlacedDetail extends MfeEventPayload {
-  orderId: string;
-  total: number;
-  itemCount: number;
-}
-
 export interface MfeNotificationDetail extends MfeEventPayload {
   message: string;
 }
@@ -36,8 +25,6 @@ export interface MfeNotificationDetail extends MfeEventPayload {
 export interface MfeDefaultEventMap {
   "mfe:ping": MfePingDetail;
   "mfe:pong": MfePongDetail;
-  "mfe:cart_update": MfeCartUpdateDetail;
-  "mfe:order_placed": MfeOrderPlacedDetail;
   "mfe:notification": MfeNotificationDetail;
   "mfe:navigation": MfeEventPayload;
 }
@@ -61,8 +48,6 @@ export const MFE_EVENTS: {
   readonly PONG: "mfe:pong";
   readonly NOTIFICATION: "mfe:notification";
   readonly NAVIGATION: "mfe:navigation";
-  readonly CART_UPDATE: "mfe:cart_update";
-  readonly ORDER_PLACED: "mfe:order_placed";
 };
 
 export interface EventBusOptions {

@@ -6,29 +6,32 @@ export const MFE_EVENTS = {
   PONG: "mfe:pong",
   NOTIFICATION: "mfe:notification",
   NAVIGATION: "mfe:navigation",
-  CART_UPDATE: "mfe:cart_update",
-  ORDER_PLACED: "mfe:order_placed",
 };
 
 /**
  * Dispatch an event from any MFE (Host or Remote).
- * Pure JavaScript, runtime-agnostic.
+ * Pure JavaScript, runtime-agnostic, with runtime payload validation.
  *
  * @param {string} eventName
- * @param {any} payload
+ * @param {object} [payload={}]
  */
 export function sendMfeEvent(eventName, payload = {}) {
   if (typeof window === "undefined") return;
 
+  if (typeof eventName !== "string" || eventName.trim() === "") {
+    throw new Error("[mfe-events] sendMfeEvent requires a valid non-empty string eventName.");
+  }
+
+  const safePayload = typeof payload === "object" && payload !== null ? payload : { data: payload };
+
   const defaultSender =
-    window.__MFE_NAME__ ||
-    (window.__IS_HOST__ ? "Host Shell" : "Remote Micro-Frontend");
+    window.__IS_HOST__ ? "Host Shell" : (window.__MFE_NAME__ || "Remote Micro-Frontend");
 
   const event = new CustomEvent(eventName, {
     detail: {
-      ...payload,
+      ...safePayload,
       timestamp: Date.now(),
-      sender: payload?.sender || defaultSender,
+      sender: safePayload.sender || defaultSender,
     },
   });
   window.dispatchEvent(event);
@@ -44,6 +47,10 @@ export function sendMfeEvent(eventName, payload = {}) {
  */
 export function listenMfeEvent(eventName, handler) {
   if (typeof window === "undefined") return () => {};
+
+  if (typeof eventName !== "string" || eventName.trim() === "") {
+    throw new Error("[mfe-events] listenMfeEvent requires a valid non-empty string eventName.");
+  }
 
   const listener = (event) => {
     if (event instanceof CustomEvent && typeof handler === "function") {
@@ -63,11 +70,11 @@ export function listenMfeEvent(eventName, handler) {
 }
 
 /**
- * Creates a scoped event bus instance bound to a specific sender and optional namespace.
- * Eliminates global name conflicts when multiple remotes run concurrently.
+ * Creates a scoped event bus instance bound to an explicit sender and optional namespace.
+ * Eliminates global name conflicts and sender overwrites when multiple remotes run concurrently.
  *
  * @param {object} [options]
- * @param {string} [options.sender] Default sender identifier for events
+ * @param {string} [options.sender] Explicit sender identifier (e.g. "authMfe", "marketingMfe")
  * @param {string} [options.namespace] Optional namespace prefix (e.g. "checkout")
  * @returns {{
  *   sender: string,
@@ -81,7 +88,7 @@ export function createMfeEventBus(options = {}) {
   const sender =
     options?.sender ||
     (typeof window !== "undefined"
-      ? window.__MFE_NAME__ || (window.__IS_HOST__ ? "Host Shell" : "Remote Micro-Frontend")
+      ? (window.__IS_HOST__ ? "Host Shell" : "Remote Micro-Frontend")
       : "Remote Micro-Frontend");
   const namespace = options?.namespace || null;
 
@@ -94,10 +101,11 @@ export function createMfeEventBus(options = {}) {
 
   function send(eventName, payload = {}) {
     const resolvedName = resolveEventName(eventName);
+    const safePayload = typeof payload === "object" && payload !== null ? payload : { data: payload };
     sendMfeEvent(resolvedName, {
-      ...payload,
-      sender: payload?.sender || sender,
-      namespace: payload?.namespace || namespace,
+      ...safePayload,
+      sender: safePayload.sender || sender,
+      namespace: safePayload.namespace || namespace,
     });
   }
 

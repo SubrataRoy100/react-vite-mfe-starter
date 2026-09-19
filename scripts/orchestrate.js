@@ -8,6 +8,7 @@ import {
   getDevCommands,
 } from "./manifest.js";
 import { checkAndFreePorts } from "./port-guard.js";
+import { generateRemotesDts } from "./generate-remotes-dts.js";
 
 const action = process.argv[2] || "dev";
 const manifest = loadManifest();
@@ -49,6 +50,7 @@ switch (action) {
       console.log("No remotes configured in remotes.manifest.json. Skipping.");
       process.exit(0);
     }
+    generateRemotesDts();
     const filterArgs = getBuildFilterArgs(activeManifest).join(" ");
     console.log(`Building remotes: ${activeRemotes.join(", ")}...`);
     execSync(`pnpm exec turbo run build ${filterArgs}`, { stdio: "inherit", shell: true });
@@ -56,6 +58,7 @@ switch (action) {
   }
 
   case "build": {
+    generateRemotesDts();
     console.log("Running production monorepo build with Turborepo...");
     execSync("pnpm exec turbo run build", { stdio: "inherit", shell: true });
     break;
@@ -71,7 +74,10 @@ switch (action) {
   }
 
   case "dev": {
-    // 1. Run pre-flight port guard
+    // 1. Automatically keep types and registry synchronized
+    generateRemotesDts();
+
+    // 2. Run safe pre-flight port guard
     const portsToCheck = [
       5000,
       ...Object.values(activeManifest).map((c) => c.port).filter(Boolean),
@@ -79,12 +85,7 @@ switch (action) {
     console.log(`[orchestrate] Running pre-flight port guard on: ${portsToCheck.join(", ")}...`);
     checkAndFreePorts(portsToCheck, true);
 
-    if (activeRemotes.length > 0) {
-      const filterArgs = getBuildFilterArgs(activeManifest).join(" ");
-      console.log(`Performing initial build for remotes: ${activeRemotes.join(", ")}...`);
-      execSync(`pnpm exec turbo run build ${filterArgs}`, { stdio: "inherit", shell: true });
-    }
-
+    // 3. Launch live Vite dev servers with true HMR across all packages
     const devCommands = [
       ...getDevCommands(activeManifest),
       {
@@ -94,7 +95,7 @@ switch (action) {
       },
     ];
 
-    console.log(`Starting development orchestration (${devCommands.length} processes)...`);
+    console.log(`Starting development orchestration with live HMR (${devCommands.length} processes)...`);
     const { result } = concurrently(devCommands, {
       prefix: "name",
       killOthers: ["failure"],

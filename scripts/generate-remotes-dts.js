@@ -34,10 +34,9 @@ export function generateRemotesDts() {
     if (existsSync(pkgViteConfig)) {
       try {
         const content = readFileSync(pkgViteConfig, "utf-8");
-        // Simple regex extractor for exposed module keys
-        const exposesMatch = content.match(/exposes:\s*\{([^}]+)\}/s);
-        if (exposesMatch && exposesMatch[1]) {
-          const keyMatches = [...exposesMatch[1].matchAll(/["'](\.[^"']+)["']\s*:/g)];
+        // Robust regex matching key-value pairs inside exposes
+        const keyMatches = [...content.matchAll(/["'](\.\/[a-zA-Z0-9_-]+)["']\s*:\s*["'][^"']+["']/g)];
+        if (keyMatches.length > 0) {
           exposesKeys = keyMatches.map((m) => m[1]);
         }
       } catch (err) {
@@ -45,32 +44,16 @@ export function generateRemotesDts() {
       }
     }
 
-    // Default fallback exposed modules if regex could not extract
+    // Default fallback exposed module
     if (exposesKeys.length === 0) {
-      if (remoteName === "demoService") {
-        exposesKeys = ["./App", "./MfeDevWidget"];
-      } else {
-        exposesKeys = ["./App"];
-      }
+      exposesKeys = ["./App"];
     }
 
     for (const exposeKey of exposesKeys) {
       const cleanSubpath = exposeKey.replace(/^\.\//, "");
       const moduleSpecifier = `${remoteName}/${cleanSubpath}`;
 
-      if (cleanSubpath === "MfeDevWidget") {
-        declarations.push(
-          `declare module "${moduleSpecifier}" {`,
-          `  import { ComponentType } from "react";`,
-          `  export interface MfeDevWidgetProps {`,
-          `    title?: string;`,
-          `  }`,
-          `  const MfeDevWidget: ComponentType<MfeDevWidgetProps>;`,
-          `  export default MfeDevWidget;`,
-          `}`,
-          ""
-        );
-      } else if (cleanSubpath === "mount") {
+      if (cleanSubpath === "mount") {
         declarations.push(
           `declare module "${moduleSpecifier}" {`,
           `  export function mount(container: HTMLElement, props?: Record<string, any>): (() => void) | void;`,

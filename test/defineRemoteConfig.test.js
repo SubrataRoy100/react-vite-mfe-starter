@@ -4,6 +4,8 @@ import { defineRemoteConfig, DEFAULT_SHARED_DEPS } from "../packages/shared/src/
 
 const mockManifestPath = resolve(process.cwd(), "test/fixtures/mock-remotes.manifest.json");
 
+process.env.MFE_VITE_NO_TEST_ENV_CHECK = "true";
+
 describe("defineRemoteConfig", () => {
   it("throws an error if name is not provided", () => {
     const configFn = defineRemoteConfig({});
@@ -26,7 +28,7 @@ describe("defineRemoteConfig", () => {
 
   it("allows explicit port override", () => {
     const configFn = defineRemoteConfig({
-      name: "demoService",
+      name: "customRemote",
       port: 9999,
     });
     const resolved = configFn({ mode: "development", command: "serve" });
@@ -35,10 +37,8 @@ describe("defineRemoteConfig", () => {
   });
 
   it("merges custom shared dependencies with default shared dependencies", () => {
-    let capturedFederationConfig = null;
     const configFn = defineRemoteConfig({
       name: "billingService",
-      engine: "originjs",
       port: 5002,
       shared: {
         zustand: { singleton: true },
@@ -57,8 +57,8 @@ describe("defineRemoteConfig", () => {
       .find(
         (p) =>
           p &&
-          (p.name === "originjs:federation" ||
-            (typeof p.name === "string" && p.name.includes("module-federation")))
+          typeof p.name === "string" &&
+          (p.name.includes("module-federation") || p.name.includes("mf"))
       );
     expect(federationPlugin).toBeDefined();
 
@@ -69,7 +69,7 @@ describe("defineRemoteConfig", () => {
 
   it("supports the extend hook to customize final config", () => {
     const configFn = defineRemoteConfig({
-      name: "demoService",
+      name: "extendService",
       extend: (cfg, env) => {
         cfg.customOption = "custom-value";
         if (env.mode === "test") {
@@ -85,7 +85,7 @@ describe("defineRemoteConfig", () => {
 
   it("supports function signature for dynamic options", () => {
     const configFn = defineRemoteConfig((env) => ({
-      name: "demoService",
+      name: "dynamicService",
       base: env.mode === "production" ? "/cdn/" : "/",
     }));
 
@@ -117,7 +117,6 @@ describe("defineRemoteConfig", () => {
   it("supports framework: 'vanilla' without framework plugins", () => {
     const configFn = defineRemoteConfig({
       name: "vanillaService",
-      engine: "originjs",
       framework: "vanilla",
       port: 5004,
       tailwind: false,
@@ -131,11 +130,11 @@ describe("defineRemoteConfig", () => {
     expect(hasReactPlugin).toBe(false);
     expect(hasTailwindPlugin).toBe(false);
 
-    // Federation and CSS fix should still be present
-    const hasFederation = resolved.plugins.some((p) => p && p.name === "originjs:federation");
-    const hasCssFix = resolved.plugins.some((p) => p && p.name === "federation-css-fix");
+    // Federation should still be present
+    const hasFederation = resolved.plugins
+      .flat(Infinity)
+      .some((p) => p && typeof p.name === "string" && (p.name.includes("module-federation") || p.name.includes("mf")));
     expect(hasFederation).toBe(true);
-    expect(hasCssFix).toBe(true);
   });
 
   it("resolves port from custom manifestPath", () => {
@@ -150,7 +149,7 @@ describe("defineRemoteConfig", () => {
 
   it("preserves unhashed remoteEntry.js naming even when user supplies custom build.rollupOptions", () => {
     const configFn = defineRemoteConfig({
-      name: "demoService",
+      name: "entryNamingService",
       build: {
         sourcemap: true,
         rollupOptions: {

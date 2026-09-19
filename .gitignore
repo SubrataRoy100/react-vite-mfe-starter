@@ -11,3 +11,4 @@ coverage/
 .demo-backup/
 .gc-backup/
 .turbo/
+*.tsbuildinfo

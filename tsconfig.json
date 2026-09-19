@@ -4,8 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "types": ["node"],
     "allowJs": true,
     "checkJs": false,
+    "noImplicitAny": false,
     "jsx": "react-jsx",
     "noEmit": true,
     "isolatedModules": true,
@@ -21,6 +23,9 @@
     "node_modules",
     "**/node_modules/*",
     "**/dist/*",
-    ".demo-backup"
+    "**/*.test.jsx",
+    "**/*.test.js",
+    ".demo-backup",
+    ".gc-backup"
   ]
 }

@@ -91,9 +91,10 @@ export function UniversalRemoteMount({
   const containerRef = useRef(null);
   const instanceRef = useRef(null);
   const prevPropsRef = useRef(remoteProps);
-  const loader = rawModuleProp !== undefined ? rawModuleProp : loadRemote;
-  const loaderRef = useRef(loader);
-  loaderRef.current = loader;
+  const loadRemoteRef = useRef(loadRemote);
+  loadRemoteRef.current = loadRemote;
+  const rawModuleRef = useRef(rawModuleProp);
+  rawModuleRef.current = rawModuleProp;
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
@@ -110,44 +111,74 @@ export function UniversalRemoteMount({
     setLoading(true);
     setError(null);
 
-    const targetLoader = loaderRef.current;
-    if (targetLoader === undefined || targetLoader === null) {
+    const activeLoadRemote = loadRemoteRef.current;
+    const activeModuleProp = rawModuleRef.current;
+
+    let promise;
+
+    if (typeof activeLoadRemote === "function") {
+      try {
+        const res = activeLoadRemote();
+        if (res && typeof res.then === "function") {
+          promise = res;
+        } else {
+          setRemoteModule(() => res);
+          setLoading(false);
+          return;
+        }
+      } catch (invokeErr) {
+        const resolvedError =
+          invokeErr instanceof Error ? invokeErr : new Error(String(invokeErr));
+        setError(resolvedError);
+        setLoading(false);
+        onErrorRef.current?.(resolvedError);
+        return;
+      }
+    } else if (activeModuleProp !== undefined && activeModuleProp !== null) {
+      const isComponent =
+        typeof activeModuleProp === "function" &&
+        (Boolean(activeModuleProp.prototype?.isReactComponent) ||
+          Boolean(activeModuleProp.$$typeof) ||
+          (typeof activeModuleProp.name === "string" && /^[A-Z]/.test(activeModuleProp.name)));
+
+      if (isComponent) {
+        setRemoteModule(() => activeModuleProp);
+        setLoading(false);
+        return;
+      }
+
+      if (typeof activeModuleProp === "function") {
+        try {
+          const res = activeModuleProp();
+          if (res && typeof res.then === "function") {
+            promise = res;
+          } else {
+            setRemoteModule(() => res);
+            setLoading(false);
+            return;
+          }
+        } catch (invokeErr) {
+          const resolvedError =
+            invokeErr instanceof Error ? invokeErr : new Error(String(invokeErr));
+          setError(resolvedError);
+          setLoading(false);
+          onErrorRef.current?.(resolvedError);
+          return;
+        }
+      } else if (typeof activeModuleProp.then === "function") {
+        promise = activeModuleProp;
+      } else {
+        setRemoteModule(() => activeModuleProp);
+        setLoading(false);
+        return;
+      }
+    } else {
       const err = new Error(
-        `[UniversalRemoteMount] No module or loadRemote function provided for "${remoteName}". Please provide \`module={() => import('remote/App')}\`.`
+        `[UniversalRemoteMount] No module or loadRemote function provided for "${remoteName}". Please provide \`loadRemote={() => import('remote/App')}\`.`
       );
       setError(err);
       setLoading(false);
       onErrorRef.current?.(err);
-      return;
-    }
-
-    let promise;
-    if (typeof targetLoader === "function") {
-      let isLoaderFunction = false;
-      try {
-        const res = targetLoader();
-        if (res && typeof res.then === "function") {
-          promise = res;
-          isLoaderFunction = true;
-        }
-      } catch {
-        // If calling with 0 arguments throws (e.g. Component accessing props.x),
-        // it is a React component directly passed as module={Component}
-        isLoaderFunction = false;
-      }
-
-      if (!isLoaderFunction && !promise) {
-        // targetLoader is a component function directly passed
-        setRemoteModule(() => targetLoader);
-        setLoading(false);
-        return;
-      }
-    } else if (targetLoader && typeof targetLoader.then === "function") {
-      promise = targetLoader;
-    } else {
-      // Direct module or component object passed
-      setRemoteModule(() => targetLoader);
-      setLoading(false);
       return;
     }
 

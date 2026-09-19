@@ -3,25 +3,45 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import App from "./App.jsx";
-import { remoteRoutes } from "./remotesRegistry.jsx";
 
-// `marketingMfe/App`, `authMfe/App`, and `./pages/LandingPage` are only resolvable at real
-// build time (federation / real dynamic import) — mock both so this file
-// tests routing wiring, not the remote's or the landing page's internals.
-vi.mock("marketingMfe/App", () => ({
-  default: () => <div data-testid="marketing-app">Marketing Remote Mounted</div>,
-}));
-
-vi.mock("authMfe/App", () => ({
-  default: () => <div data-testid="auth-app">Auth Remote Mounted</div>,
-}));
-
+// Mock LandingPage
 vi.mock("./pages/LandingPage", () => ({
   default: () => <div data-testid="landing-page">Host Landing Page</div>,
 }));
 
-describe("Host App routing", () => {
-  it("renders the host landing page at /", async () => {
+// Mock remotesRegistry with a testable active remote route and a crashing remote route
+vi.mock("./remotesRegistry.jsx", () => {
+  const HealthyRemote = () => <div data-testid="healthy-remote">Healthy Remote App</div>;
+  const CrashingRemote = () => {
+    throw new Error("Simulated remote crash exception");
+  };
+
+  return {
+    remoteRoutes: [
+      {
+        key: "authMfe-auth",
+        name: "authMfe",
+        path: "/auth/*",
+        urlPath: "/auth",
+        port: 5002,
+        Component: HealthyRemote,
+        framework: "react",
+      },
+      {
+        key: "crashMfe-crash",
+        name: "crashMfe",
+        path: "/crash/*",
+        urlPath: "/crash",
+        port: 5099,
+        Component: CrashingRemote,
+        framework: "react",
+      },
+    ],
+  };
+});
+
+describe("Host App routing and isolation", () => {
+  it("renders the host landing page at / when no root remote is declared", async () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
         <App />
@@ -31,31 +51,40 @@ describe("Host App routing", () => {
     expect(await screen.findByTestId("landing-page")).toBeDefined();
   });
 
-  it("handles marketingMfe remote routing cleanly", async () => {
-    render(
-      <MemoryRouter initialEntries={["/landing"]}>
-        <App />
-      </MemoryRouter>
-    );
-
-    const hasMarketing = remoteRoutes.some((r) => r.name === "marketingMfe");
-    if (hasMarketing) {
-      expect(await screen.findByTestId("marketing-app")).toBeDefined();
-    }
-    expect(screen.queryByText(/Global Host Error/i)).toBeNull();
-  });
-
-  it("handles authMfe remote routing cleanly", async () => {
+  it("mounts registered remote application at its designated subpath", async () => {
     render(
       <MemoryRouter initialEntries={["/auth"]}>
         <App />
       </MemoryRouter>
     );
 
-    const hasAuth = remoteRoutes.some((r) => r.name === "authMfe");
-    if (hasAuth) {
-      expect(await screen.findByTestId("auth-app")).toBeDefined();
-    }
-    expect(screen.queryByText(/Global Host Error/i)).toBeNull();
+    expect(await screen.findByTestId("healthy-remote")).toBeDefined();
+  });
+
+  it("isolates runtime errors in remotes using RemoteErrorBoundary without crashing the host shell", async () => {
+    // Suppress console.error in test output for the intentional test crash
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    render(
+      <MemoryRouter initialEntries={["/crash"]}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText(/Failed to load crashMfe/i)).toBeDefined();
+    expect(screen.getByText(/MFE Boundary Isolated/i)).toBeDefined();
+    expect(screen.getByText(/Simulated remote crash exception/i)).toBeDefined();
+
+    spy.mockRestore();
+  });
+
+  it("renders nothing for unregistered routes", () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/unregistered-domain-route"]}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(container.textContent).toBe("");
   });
 });

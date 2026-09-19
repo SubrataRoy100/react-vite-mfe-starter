@@ -93,11 +93,6 @@ if (!noBackup) {
     console.log("   ✓ Backed up remotes.manifest.json");
   }
 
-  // Backup PlanServices.md
-  if (existsSync(planServicesPath)) {
-    cpSync(planServicesPath, resolve(backupDir, "PlanServices.md"));
-    console.log("   ✓ Backed up PlanServices.md");
-  }
 
   console.log("   ✓ Backup completed at: .demo-backup/\n");
 }

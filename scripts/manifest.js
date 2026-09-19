@@ -37,19 +37,13 @@ export function getDevCommands(manifest) {
   const commands = [];
 
   remotes.forEach((remote, index) => {
-    const watchColor = COLOR_PALETTE[index % COLOR_PALETTE.length];
-    const previewColor = COLOR_PALETTE[(index + 1) % COLOR_PALETTE.length];
+    const color = COLOR_PALETTE[index % COLOR_PALETTE.length];
 
+    // Single dev command per remote using Vite dev server and live Module Federation HMR
     commands.push({
-      command: `pnpm --filter ${remote} watch`,
-      name: `${remote}:watch`,
-      prefixColor: watchColor,
-    });
-
-    commands.push({
-      command: `pnpm --filter ${remote} preview`,
-      name: `${remote}:preview`,
-      prefixColor: previewColor,
+      command: `pnpm --filter ${remote} dev`,
+      name: remote,
+      prefixColor: color,
     });
   });
 

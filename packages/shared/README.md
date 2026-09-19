@@ -1,4 +1,4 @@
-﻿# @subrataroy100/mfe-shared
+# @subrataroy100/mfe-shared
 
 Cross-micro-frontend event bus, Universal Adapters for multi-framework federation, Shadow DOM CSS isolation, shared UI primitives, configuration constants, and centralized Vite federation preset.
 
@@ -9,7 +9,7 @@ Designed for production Micro-Frontend architectures powered by **Vite**, **Modu
 
 ---
 
-> 📖 **Full Step-by-Step Tutorial**: For an end-to-end walkthrough on building a Host and Remote from scratch, see the **[In-Depth Getting Started Guide](../../docs/NPM_GETTING_STARTED.md)**.
+> 📖 **Architecture & Guides**: For detailed monorepo architecture and guides, see **[Architecture Specification](../../docs/ARCHITECTURE.md)** and **[Development Guide](../../docs/DEVELOPMENT_GUIDE.md)**.
 
 ## 📦 Installation
 
@@ -76,7 +76,7 @@ export default defineRemoteConfig({
   },
   // frameworkPlugin: vue(),           // Custom framework plugin for non-React
   // reactOptions: {},                 // Passed to @vitejs/plugin-react
-  // federationOptions: {},            // Extra @originjs/vite-plugin-federation options
+  // federationOptions: {},            // Extra @module-federation/vite options
   // plugins: [],                      // Additional Vite plugins
   // cors: true,                       // CORS on preview server. Default: true ('*')
   // extend: (config, env) => config,  // Escape-hatch to mutate final Vite config
@@ -180,8 +180,6 @@ const unsubscribe = listenMfeEvent(MFE_EVENTS.PONG, (detail) => console.log(deta
 | `PONG` | `'mfe:pong'` |
 | `NOTIFICATION` | `'mfe:notification'` |
 | `NAVIGATION` | `'mfe:navigation'` |
-| `CART_UPDATE` | `'mfe:cart_update'` |
-| `ORDER_PLACED` | `'mfe:order_placed'` |
 
 #### `useMfeEventListener(eventName, handler)`
 
@@ -324,8 +322,6 @@ import { MFE_CONFIG } from '@subrataroy100/mfe-shared/constants';
 MFE_CONFIG.HOST.NAME          // 'host'
 MFE_CONFIG.HOST.PORT          // 5000
 MFE_CONFIG.HOST.DEFAULT_URL   // 'http://localhost:5000'
-MFE_CONFIG.DEMO_SERVICE.PORT  // 5001
-MFE_CONFIG.DEMO_SERVICE.ENTRY_PATH  // '/remoteEntry.js'
 ```
 
 ---

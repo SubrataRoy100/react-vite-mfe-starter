@@ -13,7 +13,7 @@ The primary container application for the Micro-Frontend Monorepo architecture.
 
 1. **Dynamic Manifest-Driven Federation**:
    - Reads `remotes.manifest.json` at build time to dynamically wire remotes into Module Federation without hardcoded configuration.
-   - Supports runtime URL overrides via `window.__MFE_RUNTIME_CONFIG__` without rebuilding (see [Runtime Configuration Guide](../../docs/RUNTIME_CONFIGURATION.md)).
+   - Supports runtime URL overrides via `window.__MFE_RUNTIME_CONFIG__` without rebuilding (see [Runtime Configuration Guide](../../docs/RUNTIME_CONFIG_AND_EVENTS.md)).
 
 2. **Fault Isolation (`<RemoteErrorBoundary>`)**:
    - Every remote route is wrapped in an isolated boundary with Suspense fallbacks.

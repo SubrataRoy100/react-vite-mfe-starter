@@ -168,13 +168,16 @@ importers:
     devDependencies:
       '@module-federation/vite':
         specifier: ^1.22.0
-        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/node':
+        specifier: ^26.6.1
+        version: 26.6.1
       '@vitejs/plugin-react':
         specifier: ^6.1.1
-        version: 6.1.1(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 6.1.1(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       '@vitest/coverage-v8':
         specifier: ^5.0.1
         version: 5.0.1(vitest@5.0.1)
@@ -192,7 +195,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: ^5.0.1
-        version: 5.0.1(@vitest/coverage-v8@5.0.1)(jsdom@30.0.1)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 5.0.1(@types/node@26.6.1)(@vitest/coverage-v8@5.0.1)(jsdom@30.0.1)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
 
   packages/authMfe:
     dependencies:
@@ -211,10 +214,10 @@ importers:
     devDependencies:
       '@module-federation/vite':
         specifier: ^1.22.0
-        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 4.3.3(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       '@types/react':
         specifier: ^19.2.18
         version: 19.3.0
@@ -223,7 +226,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.1.1
-        version: 6.1.1(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 6.1.1(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       oxlint:
         specifier: ^1.81.0
         version: 1.83.0
@@ -232,7 +235,7 @@ importers:
         version: 4.3.3
       vite:
         specifier: ^8.3.0
-        version: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+        version: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
   packages/host:
     dependencies:
@@ -241,7 +244,7 @@ importers:
         version: link:../shared
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 4.3.3(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       react:
         specifier: ^19.2.8
         version: 19.3.0
@@ -260,7 +263,7 @@ importers:
     devDependencies:
       '@module-federation/vite':
         specifier: ^1.22.0
-        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       '@types/react':
         specifier: ^19.2.18
         version: 19.3.0
@@ -269,13 +272,13 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.1.1
-        version: 6.1.1(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 6.1.1(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       oxlint:
         specifier: ^1.81.0
         version: 1.83.0
       vite:
         specifier: ^8.3.0
-        version: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+        version: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
   packages/marketingMfe:
     dependencies:
@@ -294,7 +297,7 @@ importers:
     devDependencies:
       '@module-federation/vite':
         specifier: ^1.22.0
-        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       '@types/react':
         specifier: ^19.2.18
         version: 19.3.0
@@ -303,29 +306,31 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.1.1
-        version: 6.1.1(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 6.1.1(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       oxlint:
         specifier: ^1.81.0
         version: 1.83.0
       vite:
         specifier: ^8.3.0
-        version: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+        version: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
   packages/shared:
-    dependencies:
-      '@originjs/vite-plugin-federation':
-        specifier: ^1.4.1
-        version: 1.4.1
     devDependencies:
       '@module-federation/vite':
         specifier: ^1.22.0
-        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 1.22.0(typescript@7.0.2)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       '@tailwindcss/vite':
         specifier: ^4.3.3
-        version: 4.3.3(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 4.3.3(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.2.7
+        version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.1.1
-        version: 6.1.1(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+        version: 6.1.1(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       oxlint:
         specifier: ^1.81.0
         version: 1.83.0
@@ -340,7 +345,7 @@ importers:
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.28)(supports-color@10.2.2)(typescript@7.0.2)
       vite:
         specifier: ^8.3.0
-        version: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+        version: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
 packages:
 
@@ -641,10 +646,6 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [glibc]
-
-  '@originjs/vite-plugin-federation@1.4.1':
-    resolution: {integrity: sha512-Uo08jW5pj1t58OUKuZNkmzcfTN2pqeVuAWCCiKf/75/oll4Efq4cHOqSE1FXMlvwZNGDziNdDyBbQ5IANem3CQ==}
-    engines: {node: '>=14.0.0', pnpm: '>=7.0.1'}
 
   '@oxc-project/types@0.149.0':
     resolution: {integrity: sha512-Efcc+iF0j3Bf67YjEqIqWXbX5XddXoK/Mw4K1/JuXwRCZ8N16VR7iT23nlCc9XrveFVh/E5Rqs2StT0V8v9LdA==}
@@ -1165,6 +1166,9 @@ packages:
 
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
+
+  '@types/node@26.6.1':
+    resolution: {integrity: sha512-VqGJBMCtdhqkBUCcBLvywI0NJ+KLuVzgNnlBUNFOQjqVxzo2lxLUNg1DSey8+u2u6ktswSAxg+s68QLzWHNOuA==}
 
   '@types/react-dom@19.3.0':
     resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
@@ -1721,10 +1725,6 @@ packages:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
 
-  magic-string@0.27.0:
-    resolution: {integrity: sha512-8UnnX2PeRAPZuN12svgR9j7M1uWMovg/CEnIwIG0LFkXSJJe4PdfUGiTGl8V9bsBHFUtfVINcSyYxd7q+kx9fA==}
-    engines: {node: '>=12'}
-
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -2014,6 +2014,9 @@ packages:
 
   ufo@1.6.4:
     resolution: {integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==}
+
+  undici-types@8.9.0:
+    resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
   undici@7.29.0:
     resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
@@ -2370,12 +2373,12 @@ snapshots:
 
   '@module-federation/third-party-dts-extractor@2.9.0': {}
 
-  '@module-federation/vite@1.22.0(typescript@7.0.2)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))':
+  '@module-federation/vite@1.22.0(typescript@7.0.2)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))':
     dependencies:
       '@module-federation/dts-plugin': 2.9.0(typescript@7.0.2)
       '@module-federation/runtime': 2.9.0
       '@module-federation/sdk': 2.9.0
-      vite: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+      vite: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
     transitivePeerDependencies:
       - bufferutil
       - typescript
@@ -2384,11 +2387,6 @@ snapshots:
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
-
-  '@originjs/vite-plugin-federation@1.4.1':
-    dependencies:
-      estree-walker: 3.0.3
-      magic-string: 0.27.0
 
   '@oxc-project/types@0.149.0': {}
 
@@ -2634,12 +2632,12 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.3.3
       '@tailwindcss/oxide-win32-x64-msvc': 4.3.3
 
-  '@tailwindcss/vite@4.3.3(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))':
+  '@tailwindcss/vite@4.3.3(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))':
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
-      vite: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+      vite: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
   '@testing-library/dom@10.4.2':
     dependencies:
@@ -2690,6 +2688,10 @@ snapshots:
   '@types/deep-eql@4.0.2': {}
 
   '@types/estree@1.0.9': {}
+
+  '@types/node@26.6.1':
+    dependencies:
+      undici-types: 8.9.0
 
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
@@ -2759,10 +2761,10 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  '@vitejs/plugin-react@6.1.1(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))':
+  '@vitejs/plugin-react@6.1.1(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+      vite: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
   '@vitest/coverage-v8@5.0.1(vitest@5.0.1)':
     dependencies:
@@ -2774,7 +2776,7 @@ snapshots:
       obug: 2.2.1
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 5.0.1(@vitest/coverage-v8@5.0.1)(jsdom@30.0.1)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+      vitest: 5.0.1(@types/node@26.6.1)(@vitest/coverage-v8@5.0.1)(jsdom@30.0.1)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
 
   '@vitest/istanbul-lib-coverage@1.0.1': {}
 
@@ -2782,14 +2784,14 @@ snapshots:
     dependencies:
       '@vitest/istanbul-lib-coverage': 1.0.1
 
-  '@vitest/mocker@5.0.1(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))':
+  '@vitest/mocker@5.0.1(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.1
       estree-walker: 3.0.3
       magic-string: 1.4.1
     optionalDependencies:
-      vite: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+      vite: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
   '@vitest/spy@5.0.1': {}
 
@@ -3109,10 +3111,6 @@ snapshots:
   lru-cache@11.5.2: {}
 
   lz-string@1.5.0: {}
-
-  magic-string@0.27.0:
-    dependencies:
-      '@jridgewell/sourcemap-codec': 1.6.0
 
   magic-string@0.30.21:
     dependencies:
@@ -3447,11 +3445,13 @@ snapshots:
 
   ufo@1.6.4: {}
 
+  undici-types@8.9.0: {}
+
   undici@7.29.0: {}
 
   undici@8.10.2: {}
 
-  vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0):
+  vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -3459,14 +3459,15 @@ snapshots:
       rolldown: 1.2.8
       tinyglobby: 0.2.17
     optionalDependencies:
+      '@types/node': 26.6.1
       esbuild: 0.27.7
       fsevents: 2.3.3
       jiti: 2.7.0
 
-  vitest@5.0.1(@vitest/coverage-v8@5.0.1)(jsdom@30.0.1)(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0)):
+  vitest@5.0.1(@types/node@26.6.1)(@vitest/coverage-v8@5.0.1)(jsdom@30.0.1)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.1(vite@8.3.0(esbuild@0.27.7)(jiti@2.7.0))
+      '@vitest/mocker': 5.0.1(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
       chai: 6.2.2
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -3477,9 +3478,10 @@ snapshots:
       tinybench: 6.1.4
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
-      vite: 8.3.0(esbuild@0.27.7)(jiti@2.7.0)
+      vite: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@types/node': 26.6.1
       '@vitest/coverage-v8': 5.0.1(vitest@5.0.1)
       jsdom: 30.0.1
     transitivePeerDependencies:

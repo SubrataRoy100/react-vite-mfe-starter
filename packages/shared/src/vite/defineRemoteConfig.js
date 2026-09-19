@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import originjsFederation from "@originjs/vite-plugin-federation";
 import { federation as mfFederation } from "@module-federation/vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -8,12 +7,13 @@ import { defineConfig } from "vite";
 
 /**
  * Standard shared dependencies categorized by frontend framework.
+ * Singletons ensure only one copy of runtime libraries run in browser.
  */
 export const FRAMEWORK_SHARED_DEPS = {
   react: {
-    react: { singleton: true, requiredVersion: "^19.0.0" },
-    "react-dom": { singleton: true, requiredVersion: "^19.0.0" },
-    "react-router": { singleton: true, requiredVersion: "^8.0.0" },
+    react: { singleton: true, requiredVersion: false },
+    "react-dom": { singleton: true, requiredVersion: false },
+    "react-router": { singleton: true, requiredVersion: false },
   },
   vue: {
     vue: { singleton: true },
@@ -32,14 +32,14 @@ export const FRAMEWORK_SHARED_DEPS = {
 export const DEFAULT_SHARED_DEPS = FRAMEWORK_SHARED_DEPS.react;
 
 /**
- * Workaround Vite 8 template literal placeholder bug in vite-plugin-federation,
- * and automatically injects remote CSS styles into document.head at runtime
- * when remoteEntry.js is loaded by the Host container.
+ * Backward compatibility stub for legacy originjs css fix.
+ * Note: Modern @module-federation/vite handles styles natively.
  */
 export const federationCssFixPlugin = {
   name: "federation-css-fix",
   enforce: "post",
-  generateBundle(options, bundle) {
+  generateBundle(_options, bundle) {
+    if (!bundle) return;
     const entryKey = Object.keys(bundle).find((key) =>
       key.endsWith("remoteEntry.js")
     );
@@ -47,21 +47,17 @@ export const federationCssFixPlugin = {
     const remoteEntryChunk = bundle[entryKey];
     if (!remoteEntryChunk || !remoteEntryChunk.code) return;
 
-    // All CSS files in the bundle (relative to output directory)
     const cssBundleFiles = Object.keys(bundle).filter((name) =>
       name.endsWith(".css")
     );
-
     const cssFileBasenames = cssBundleFiles.map((name) => name.split("/").pop());
 
-    // 1. Replace the vite-plugin-federation __v__css__ placeholder
     const cssArray = JSON.stringify(cssFileBasenames);
     remoteEntryChunk.code = remoteEntryChunk.code.replace(
       /(["'`])__v__css__.*?\1/g,
       cssArray
     );
 
-    // 2. Prepend runtime auto-injector if CSS files exist and not already injected
     if (cssBundleFiles.length > 0) {
       const cssPathsJson = JSON.stringify(cssBundleFiles);
       const injectorCode = `(function() {
@@ -170,6 +166,7 @@ export function mergeSharedDeps(framework = "react", userShared = {}) {
 
 /**
  * Define a Vite configuration preset for Micro-Frontend remotes across any framework.
+ * Standardized on official Module Federation 2.0 via @module-federation/vite.
  *
  * Supported frameworks: "react" (default) | "vue" | "svelte" | "solid" | "vanilla" | "none"
  *
@@ -207,6 +204,12 @@ export function defineRemoteConfig(optionsOrFn) {
     if (!name) {
       throw new Error(
         "[defineRemoteConfig] A unique 'name' is required for the micro-frontend remote."
+      );
+    }
+
+    if (engine === "originjs") {
+      console.warn(
+        `[defineRemoteConfig] Notice: "originjs" engine has been deprecated and unified under modern "@module-federation/vite".`
       );
     }
 
@@ -264,29 +267,18 @@ export function defineRemoteConfig(optionsOrFn) {
       ? userOutput.map((out) => ({ ...out, ...baseOutput }))
       : { ...userOutput, ...baseOutput };
 
-    let fedPlugins = [];
-    if (engine === "originjs") {
-      fedPlugins = [
-        originjsFederation({
-          name,
-          filename,
-          exposes,
-          shared: mergedShared,
-          ...federationOptions,
-        }),
-        federationCssFixPlugin,
-      ];
-    } else {
-      const res = mfFederation({
-        name,
-        filename,
-        exposes,
-        shared: mergedShared,
-        dts: dts ?? false,
-        ...federationOptions,
-      });
-      fedPlugins = Array.isArray(res) ? res : [res];
-    }
+    const res = mfFederation({
+      name,
+      filename,
+      exposes,
+      shared: mergedShared,
+      dts: dts ?? false,
+      dev: {
+        remoteHmr: true,
+      },
+      ...federationOptions,
+    });
+    const fedPlugins = Array.isArray(res) ? res : [res];
 
     const config = {
       plugins: [
@@ -298,6 +290,12 @@ export function defineRemoteConfig(optionsOrFn) {
       server: {
         port,
         strictPort: true,
+        headers: {
+          ...(cors
+            ? { "Access-Control-Allow-Origin": cors === true ? "*" : cors }
+            : {}),
+          ...server.headers,
+        },
         ...server,
       },
       preview: {

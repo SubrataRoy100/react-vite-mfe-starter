@@ -6,7 +6,6 @@ const rootDir = process.cwd();
 const backupDir = resolve(rootDir, ".demo-backup");
 const packagesDir = resolve(rootDir, "packages");
 const manifestPath = resolve(rootDir, "remotes.manifest.json");
-const planServicesPath = resolve(rootDir, "PlanServices.md");
 
 console.log("🔄 Restoring demo service setup from .demo-backup/...\n");
 
@@ -45,12 +44,6 @@ for (const pkg of packagesToRestore) {
   restoredPackagesCount++;
 }
 
-// 2. Restore PlanServices.md
-const backupPlanServices = resolve(backupDir, "PlanServices.md");
-if (existsSync(backupPlanServices)) {
-  cpSync(backupPlanServices, planServicesPath);
-  console.log("📄 Restored PlanServices.md.");
-}
 
 // 3. Restore remotes.manifest.json
 const backupManifest = resolve(backupDir, "remotes.manifest.json");

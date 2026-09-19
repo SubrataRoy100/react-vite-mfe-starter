@@ -67,7 +67,6 @@
   },
   "peerDependencies": {
     "@module-federation/vite": ">=1.0.0",
-    "@originjs/vite-plugin-federation": "^1.4.1",
     "@tailwindcss/vite": "^4.0.0",
     "@vitejs/plugin-react": "^6.0.0",
     "react": ">=18.0.0",
@@ -84,9 +83,6 @@
     "react-dom": {
       "optional": true
     },
-    "@originjs/vite-plugin-federation": {
-      "optional": true
-    },
     "@tailwindcss/vite": {
       "optional": true
     },
@@ -100,6 +96,8 @@
   "devDependencies": {
     "@module-federation/vite": "^1.22.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
     "react": "^19.2.8",

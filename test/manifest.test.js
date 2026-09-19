@@ -62,18 +62,14 @@ describe("scripts/manifest", () => {
     expect(getBuildFilterArgs({})).toEqual([]);
   });
 
-  it("generates watch and preview dev commands for all remotes", () => {
+  it("generates live dev command for all remotes", () => {
     const commands = getDevCommands({
-      demoService: { port: 5001 },
+      marketingMfe: { port: 5002 },
     });
-    expect(commands).toHaveLength(2);
+    expect(commands).toHaveLength(1);
     expect(commands[0]).toMatchObject({
-      command: "pnpm --filter demoService watch",
-      name: "demoService:watch",
-    });
-    expect(commands[1]).toMatchObject({
-      command: "pnpm --filter demoService preview",
-      name: "demoService:preview",
+      command: "pnpm --filter marketingMfe dev",
+      name: "marketingMfe",
     });
   });
 });

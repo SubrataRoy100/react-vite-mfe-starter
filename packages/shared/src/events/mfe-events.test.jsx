@@ -162,34 +162,34 @@ describe("Cross-MFE Event Bus (mfe-events)", () => {
       expect(latestMessage).toBe("v2: ref-check");
     });
 
-    it("supports newly standardized CART_UPDATE and ORDER_PLACED events", () => {
-      expect(MFE_EVENTS.CART_UPDATE).toBe("mfe:cart_update");
-      expect(MFE_EVENTS.ORDER_PLACED).toBe("mfe:order_placed");
+    it("supports standardized NOTIFICATION and NAVIGATION events", () => {
+      expect(MFE_EVENTS.NOTIFICATION).toBe("mfe:notification");
+      expect(MFE_EVENTS.NAVIGATION).toBe("mfe:navigation");
 
-      const cartHandler = vi.fn();
-      const orderHandler = vi.fn();
+      const notifHandler = vi.fn();
+      const navHandler = vi.fn();
 
-      const unsubCart = renderHook(() =>
-        useMfeEventListener(MFE_EVENTS.CART_UPDATE, cartHandler)
+      const unsubNotif = renderHook(() =>
+        useMfeEventListener(MFE_EVENTS.NOTIFICATION, notifHandler)
       );
-      const unsubOrder = renderHook(() =>
-        useMfeEventListener(MFE_EVENTS.ORDER_PLACED, orderHandler)
+      const unsubNav = renderHook(() =>
+        useMfeEventListener(MFE_EVENTS.NAVIGATION, navHandler)
       );
 
       act(() => {
-        sendMfeEvent(MFE_EVENTS.CART_UPDATE, { count: 3 });
-        sendMfeEvent(MFE_EVENTS.ORDER_PLACED, { orderId: "ORD-99" });
+        sendMfeEvent(MFE_EVENTS.NOTIFICATION, { message: "System updated" });
+        sendMfeEvent(MFE_EVENTS.NAVIGATION, { path: "/dashboard" });
       });
 
-      expect(cartHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ count: 3 })
+      expect(notifHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "System updated" })
       );
-      expect(orderHandler).toHaveBeenCalledWith(
-        expect.objectContaining({ orderId: "ORD-99" })
+      expect(navHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ path: "/dashboard" })
       );
 
-      unsubCart.unmount();
-      unsubOrder.unmount();
+      unsubNotif.unmount();
+      unsubNav.unmount();
     });
   });
 });

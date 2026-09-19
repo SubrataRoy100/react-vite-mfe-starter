@@ -7,7 +7,7 @@ import {
   UniversalRemoteMount,
   createMfeEventBus,
   Button,
-} from "../packages/shared/dist/index.js";
+} from "../packages/shared/src/index.js";
 
 // Verify adapters imports and types
 import {
@@ -18,7 +18,7 @@ import {
   useMfeEventListener as hookFromAdapters,
   type UniversalRemoteMountProps,
   type DualModeReactMount,
-} from "../packages/shared/dist/adapters/index.js";
+} from "../packages/shared/src/adapters/index.js";
 
 // Verify events imports and types
 import {
@@ -27,7 +27,7 @@ import {
   useMfeEventListener as hookFromEvents,
   createMfeEventBus as createEventsBus,
   type ScopedEventBus,
-} from "../packages/shared/dist/events/index.js";
+} from "../packages/shared/src/events/mfe-events.js";
 
 // Verify events/core imports and types
 import {
@@ -37,38 +37,37 @@ import {
   type MfeEventPayload,
   type MfeEventMap,
   type ScopedCoreEventBus,
-} from "../packages/shared/dist/events/core.js";
+} from "../packages/shared/src/events/mfe-events-core.js";
 
 // Verify constants imports and types
 import {
   MFE_CONFIG,
   type ServiceConfig,
-} from "../packages/shared/dist/constants/index.js";
+} from "../packages/shared/src/constants/config.js";
 
 // Verify components/Button imports and types
 import ButtonDefault, {
   Button as NamedBtn,
   type ButtonProps,
-} from "../packages/shared/dist/components/Button.js";
+} from "../packages/shared/src/components/Button.jsx";
 
 // Verify vite imports and types
 import {
   defineRemoteConfig,
   DEFAULT_SHARED_DEPS,
-  type RemoteConfigOptions,
-} from "../packages/shared/dist/vite/index.js";
+} from "../packages/shared/src/vite/index.js";
 
 // 1. Type assertions: Scoped Event Bus
-const scopedBus: ScopedEventBus = createMfeEventBus({ sender: "OrderRemote", namespace: "checkout" });
-scopedBus.send("mfe:cart_update", { itemCount: 3, total: 99.99 });
-const unsubBus = scopedBus.listen("mfe:order_placed", (detail) => {
-  console.log(detail.orderId, detail.total, detail.itemCount);
+const scopedBus: ScopedEventBus = createMfeEventBus({ sender: "AuthRemote", namespace: "auth" });
+scopedBus.send("mfe:notification", { message: "User authenticated" });
+const unsubBus = scopedBus.listen("mfe:ping", (detail: { message?: string }) => {
+  console.log(detail.message);
 });
 unsubBus();
 
 // 2. Type assertions: Global typed events
-sendMfeEvent("mfe:cart_update", { itemCount: 5, total: 150 });
-const unsubGlobal = listenMfeEvent("mfe:ping", (detail) => {
+sendMfeEvent("mfe:notification", { message: "Global event" });
+const unsubGlobal = listenMfeEvent("mfe:ping", (detail: { count?: number; message?: string }) => {
   console.log(detail.count, detail.message);
 });
 unsubGlobal();

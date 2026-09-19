@@ -3,6 +3,13 @@ import React from "react";
 /**
  * Reusable Button primitive shared across the host shell and every remote
  * micro-frontend, so button styling only has to live and be maintained once.
+ *
+ * @param {object} props
+ * @param {React.ReactNode} [props.children]
+ * @param {React.MouseEventHandler<HTMLButtonElement>} [props.onClick]
+ * @param {"primary" | "secondary" | "danger"} [props.variant]
+ * @param {"button" | "submit" | "reset"} [props.type]
+ * @param {string} [props.className]
  */
 export function Button({
   children,
