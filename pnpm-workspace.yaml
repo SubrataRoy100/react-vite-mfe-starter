@@ -1,5 +1,7 @@
 packages:
-  # all packages in subdirs of packages/
+  # Applications and micro-frontends
+  - "apps/*"
+  # Shared libraries and internal tools
   - "packages/*"
 allowBuilds:
   esbuild: true

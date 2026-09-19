@@ -51,9 +51,14 @@ export function createRemote({ name, framework = "react", routePath = null, path
     process.exit(1);
   }
 
-  const packageDir = resolve(process.cwd(), "packages", name);
-  if (existsSync(packageDir)) {
-    console.error(`❌ Error: Package directory "packages/${name}" already exists.`);
+  function toKebabCase(str) {
+    return str.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+  }
+
+  const dirName = toKebabCase(name);
+  const packageDir = resolve(process.cwd(), "apps", dirName);
+  if (existsSync(packageDir) || existsSync(resolve(process.cwd(), "packages", name))) {
+    console.error(`❌ Error: Package directory "apps/${dirName}" already exists.`);
     process.exit(1);
   }
 
@@ -76,7 +81,7 @@ export function createRemote({ name, framework = "react", routePath = null, path
   console.log(`   Framework: ${framework}`);
   console.log(`   Assigned Port: ${port}`);
   console.log(`   Host Route(s): ${displayRoutes}`);
-  console.log(`   Directory: packages/${name}\n`);
+  console.log(`   Directory: apps/${dirName}\n`);
 
   mkdirSync(join(packageDir, "src", "components"), { recursive: true });
 
@@ -258,12 +263,41 @@ if (root) {
     writeFileSync(join(packageDir, "src", "main.jsx"), mainContent);
   }
 
-  // 7. .gitignore and .oxlintrc.json
+  // 7. .gitignore, .oxlintrc.json, and vercel.json
   writeFileSync(join(packageDir, ".gitignore"), "node_modules\ndist\n.turbo\n");
   writeFileSync(join(packageDir, ".oxlintrc.json"), JSON.stringify({ rules: {} }, null, 2) + "\n");
+  const vercelConfig = {
+    headers: [
+      {
+        source: "/remoteEntry.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+        ],
+      },
+      {
+        source: "/mf-manifest.json",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+        ],
+      },
+      {
+        source: "/assets/(.*)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Access-Control-Allow-Origin", value: "*" },
+        ],
+      },
+    ],
+    rewrites: [{ source: "/(.*)", destination: "/index.html" }],
+  };
+  writeFileSync(join(packageDir, "vercel.json"), JSON.stringify(vercelConfig, null, 2) + "\n");
 
   // 8. Register in remotes.manifest.json
   const manifestEntry = {
+    package: dirName,
+    dir: dirName,
     port,
     entry: "/remoteEntry.js",
     envVar,

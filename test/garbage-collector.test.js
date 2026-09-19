@@ -68,6 +68,24 @@ describe("Monorepo Garbage Collector", () => {
       expect(missing).toBeDefined();
       expect(missing.name).toBe("deletedService");
     });
+
+    it("recognizes apps/ directory with kebab-case naming in manifest without drift", () => {
+      const appsDir = join(FIXTURE_DIR, "apps");
+      mkdirSync(join(appsDir, "host"), { recursive: true });
+      mkdirSync(join(appsDir, "marketing-mfe"), { recursive: true });
+      mkdirSync(join(FIXTURE_DIR, "packages", "shared"), { recursive: true });
+
+      const manifest = {
+        marketingMfe: { port: 5002, dir: "marketing-mfe" },
+      };
+
+      const issues = auditManifestDrift({
+        rootDir: FIXTURE_DIR,
+        manifest,
+      });
+
+      expect(issues).toHaveLength(0);
+    });
   });
 
   describe("2. Stale Service References Detector", () => {

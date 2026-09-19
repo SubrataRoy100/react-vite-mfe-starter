@@ -2,9 +2,35 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const MANIFEST_PATH = resolve(process.cwd(), "remotes.manifest.json");
-const TARGET_DTS_PATH = resolve(process.cwd(), "packages/host/src/remotes.d.ts");
+function getHostSrcDir() {
+  const appsHost = resolve(process.cwd(), "apps/host/src");
+  if (existsSync(appsHost)) return appsHost;
+  return resolve(process.cwd(), "packages/host/src");
+}
+
+function toKebabCase(str) {
+  return str.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+function findRemoteViteConfig(remoteName, config = {}) {
+  const candidates = [
+    config.dir && resolve(process.cwd(), `apps/${config.dir}/vite.config.js`),
+    config.package && resolve(process.cwd(), `apps/${config.package}/vite.config.js`),
+    resolve(process.cwd(), `apps/${toKebabCase(remoteName)}/vite.config.js`),
+    resolve(process.cwd(), `apps/${remoteName}/vite.config.js`),
+    resolve(process.cwd(), `packages/${remoteName}/vite.config.js`),
+  ].filter(Boolean);
+
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[0];
+}
 
 export function generateRemotesDts() {
+  const hostSrcDir = getHostSrcDir();
+  const targetDtsPath = resolve(hostSrcDir, "remotes.d.ts");
+
   if (!existsSync(MANIFEST_PATH)) {
     console.warn(`[generate-remotes-dts] Manifest not found at: ${MANIFEST_PATH}. Skipping generation.`);
     return;
@@ -28,7 +54,7 @@ export function generateRemotesDts() {
   ];
 
   for (const [remoteName, config] of Object.entries(manifest)) {
-    const pkgViteConfig = resolve(process.cwd(), `packages/${remoteName}/vite.config.js`);
+    const pkgViteConfig = findRemoteViteConfig(remoteName, config);
     let exposesKeys = [];
 
     if (existsSync(pkgViteConfig)) {
@@ -75,16 +101,18 @@ export function generateRemotesDts() {
   }
 
   try {
-    writeFileSync(TARGET_DTS_PATH, declarations.join("\n"), "utf-8");
-    console.log(`[generate-remotes-dts] Successfully generated: ${TARGET_DTS_PATH}`);
+    writeFileSync(targetDtsPath, declarations.join("\n"), "utf-8");
+    console.log(`[generate-remotes-dts] Successfully generated: ${targetDtsPath}`);
   } catch (err) {
-    console.error(`[generate-remotes-dts] Failed writing ${TARGET_DTS_PATH}:`, err.message);
+    console.error(`[generate-remotes-dts] Failed writing ${targetDtsPath}:`, err.message);
   }
 
   generateRemotesRegistry();
 }
 
-const TARGET_REGISTRY_PATH = resolve(process.cwd(), "packages/host/src/remotesRegistry.jsx");
+function getTargetRegistryPath() {
+  return resolve(getHostSrcDir(), "remotesRegistry.jsx");
+}
 
 /**
  * Normalizes a single path string and calculates its route specificity score.
@@ -290,11 +318,12 @@ export function generateRemotesRegistry() {
   code.push("];");
   code.push("");
 
+  const targetRegistryPath = getTargetRegistryPath();
   try {
-    writeFileSync(TARGET_REGISTRY_PATH, code.join("\n"), "utf-8");
-    console.log(`[generate-remotes-dts] Successfully generated: ${TARGET_REGISTRY_PATH}`);
+    writeFileSync(targetRegistryPath, code.join("\n"), "utf-8");
+    console.log(`[generate-remotes-dts] Successfully generated: ${targetRegistryPath}`);
   } catch (err) {
-    console.error(`[generate-remotes-dts] Failed writing ${TARGET_REGISTRY_PATH}:`, err.message);
+    console.error(`[generate-remotes-dts] Failed writing ${targetRegistryPath}:`, err.message);
   }
 }
 

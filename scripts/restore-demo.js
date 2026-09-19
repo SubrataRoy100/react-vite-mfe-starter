@@ -15,32 +15,51 @@ if (!existsSync(backupDir)) {
   process.exit(1);
 }
 
+function toKebabCase(str) {
+  return str.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
 // 1. Restore packages
 let restoredPackagesCount = 0;
+const appsDir = resolve(rootDir, "apps");
+
+// Prioritize .demo-backup/apps/ over legacy .demo-backup/packages/
+const packagesToRestore = [];
+const backupAppsDir = join(backupDir, "apps");
 const backupPackagesDir = join(backupDir, "packages");
 
-const packagesToRestore = [];
-if (existsSync(backupPackagesDir)) {
+if (existsSync(backupAppsDir)) {
+  const dirs = readdirSync(backupAppsDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => ({ name: d.name, path: join(backupAppsDir, d.name), originalParent: "apps" }));
+  packagesToRestore.push(...dirs);
+} else if (existsSync(backupPackagesDir)) {
   const dirs = readdirSync(backupPackagesDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
-    .map((d) => ({ name: d.name, path: join(backupPackagesDir, d.name) }));
+    .map((d) => ({ name: d.name, path: join(backupPackagesDir, d.name), originalParent: "packages" }));
   packagesToRestore.push(...dirs);
 }
 
 // Also check root of backupDir for directories (legacy backwards compatibility)
-// only if no packages were found in .demo-backup/packages/
 if (packagesToRestore.length === 0) {
   const rootBackupDirs = readdirSync(backupDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && d.name !== "packages")
-    .map((d) => ({ name: d.name, path: join(backupDir, d.name) }));
+    .filter((d) => d.isDirectory() && d.name !== "packages" && d.name !== "apps")
+    .map((d) => ({ name: d.name, path: join(backupDir, d.name), originalParent: "apps" }));
   packagesToRestore.push(...rootBackupDirs);
 }
 
 for (const pkg of packagesToRestore) {
-  const targetDir = join(packagesDir, pkg.name);
-  console.log(`📦 Restoring packages/${pkg.name}...`);
+  // If apps/ directory exists in root and pkg is not shared, restore into apps/<kebab-case>
+  let targetParent = pkg.originalParent;
+  let targetName = pkg.name;
+  if (existsSync(appsDir) && pkg.name !== "shared") {
+    targetParent = "apps";
+    targetName = toKebabCase(pkg.name);
+  }
+  const targetDir = resolve(rootDir, targetParent, targetName);
+  console.log(`📦 Restoring ${targetParent}/${targetName}...`);
   cpSync(pkg.path, targetDir, { recursive: true });
-  console.log(`   ✓ packages/${pkg.name} restored.`);
+  console.log(`   ✓ ${targetParent}/${targetName} restored.`);
   restoredPackagesCount++;
 }
 

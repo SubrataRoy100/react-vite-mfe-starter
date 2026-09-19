@@ -1,5 +1,7 @@
 {
   "marketingMfe": {
+    "package": "marketing-mfe",
+    "dir": "marketing-mfe",
     "port": 5002,
     "path": "/landing",
     "entry": "/remoteEntry.js",
@@ -7,6 +9,8 @@
     "framework": "react"
   },
   "authMfe": {
+    "package": "auth-mfe",
+    "dir": "auth-mfe",
     "port": 5003,
     "path": "/auth",
     "entry": "/remoteEntry.js",

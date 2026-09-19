@@ -27,7 +27,10 @@ export function getTargetedManifest(manifest, targetName) {
 export function getBuildFilterArgs(manifest) {
   const remotes = getRemoteNames(manifest);
   if (remotes.length === 0) return [];
-  return remotes.flatMap((name) => ["--filter", name]);
+  return remotes.flatMap((name) => [
+    "--filter",
+    manifest[name]?.package || manifest[name]?.dir || name,
+  ]);
 }
 
 const COLOR_PALETTE = ["blue", "magenta", "yellow", "green", "red", "cyan"];
@@ -38,10 +41,12 @@ export function getDevCommands(manifest) {
 
   remotes.forEach((remote, index) => {
     const color = COLOR_PALETTE[index % COLOR_PALETTE.length];
+    const pkgName =
+      manifest[remote]?.package || manifest[remote]?.dir || remote;
 
     // Single dev command per remote using Vite dev server and live Module Federation HMR
     commands.push({
-      command: `pnpm --filter ${remote} dev`,
+      command: `pnpm --filter ${pkgName} dev`,
       name: remote,
       prefixColor: color,
     });

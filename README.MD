@@ -31,36 +31,44 @@ mfe/ (Root Workspace)
 │   ├── reset-demo.js              # Reset workspace to clean starter slate
 │   └── restore-demo.js            # Restore demo services snapshot
 │
-├── packages/
-│   ├── shared/                    # Core Library (@subrataroy100/mfe-shared)
-│   │   ├── src/
-│   │   │   ├── adapters/          # UniversalRemoteMount, Shadow DOM, dual-mode mounts
-│   │   │   ├── events/            # Scoped Event Bus, pure JS core, React hooks
-│   │   │   ├── vite/              # defineRemoteConfig preset + CSS auto-injection
-│   │   │   ├── components/        # Shared UI primitives (Button)
-│   │   │   ├── constants/         # Shared ports, origins, and configuration
-│   │   │   └── index.js           # Barrel export
-│   │   └── package.json           # Dual ESM/CJS exports with tracked .d.ts types
-│   │
+├── apps/                          # Deployable application containers & micro-frontends
 │   ├── host/                      # Primary Shell Container (Port 5000)
 │   │   ├── src/
 │   │   │   ├── components/        # Shell UI (RemoteErrorBoundary, LoadingFallback)
 │   │   │   ├── pages/             # LandingPage dashboard and live event feed
 │   │   │   ├── plugins/           # runtimeRemoteOverride.js (MF 2.0 runtime plugin)
-│   │   │   ├── utils/             # resolveRemoteUrl.js (Dynamic runtime URL resolver)
+│   │   │   ├── utils/             # resolveRemoteUrl.js & telemetry.js (APM hooks)
 │   │   │   ├── remotesRegistry.jsx# Auto-generated dynamic remote route registry
 │   │   │   ├── remotes.d.ts       # Auto-generated ambient TypeScript declarations
 │   │   │   ├── App.jsx            # Dynamic routing & error boundaries
 │   │   │   └── main.jsx           # Entry point (sets window.__IS_HOST__)
+│   │   ├── vercel.json            # Host-specific edge routing & cache headers
 │   │   └── vite.config.js         # Federation consumer configuration
 │   │
-│   └── [remoteServices...]/       # Active micro-frontends (e.g. marketingMfe, authMfe)
+│   ├── marketing-mfe/             # Marketing Micro-Frontend (Port 5002)
+│   │   ├── vercel.json            # Independent edge deployment rules
+│   │   └── vite.config.js         # defineRemoteConfig preset
+│   │
+│   └── auth-mfe/                  # Authentication Micro-Frontend (Port 5003)
+│       ├── vercel.json            # Independent edge deployment rules
+│       └── vite.config.js         # defineRemoteConfig preset
+│
+├── packages/                      # Shared libraries, adapters, and tools
+│   └── shared/                    # Core Library (@subrataroy100/mfe-shared)
+│       ├── src/
+│       │   ├── adapters/          # UniversalRemoteMount, Shadow DOM, dual-mode mounts
+│       │   ├── events/            # Scoped Event Bus, pure JS core, React hooks, event replay
+│       │   ├── vite/              # defineRemoteConfig preset + CSS auto-injection
+│       │   ├── components/        # Shared UI primitives (Button)
+│       │   ├── constants/         # Shared ports, origins, and configuration
+│       │   └── index.js           # Barrel export
+│       └── package.json           # Dual ESM/CJS exports with tracked .d.ts types
 │
 ├── docs/                          # Architectural and operational guides
-├── netlify.toml                   # Edge headers (remoteEntry no-cache, assets immutable)
-├── vercel.json                    # Edge headers (remoteEntry no-cache, assets immutable)
+├── netlify.toml                   # Root unified edge headers (preview deployments)
+├── vercel.json                    # Root unified edge headers (preview deployments)
 ├── package.json                   # Root scripts and workspace devDependencies
-└── pnpm-workspace.yaml            # Monorepo package directories
+└── pnpm-workspace.yaml            # Monorepo package directories (apps/*, packages/*)
 ```
 
 ---

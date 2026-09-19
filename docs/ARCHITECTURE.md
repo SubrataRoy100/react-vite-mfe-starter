@@ -10,30 +10,38 @@ The repository is organized as a high-performance monorepo managed with **pnpm W
 
 ```text
 mfe-campusmind-web/
-├── packages/
+├── apps/                         # Deployable application containers & micro-frontends
 │   ├── host/                     # Host Shell Container (Port 5000)
 │   │   ├── src/
 │   │   │   ├── components/       # Shell layouts, RemoteErrorBoundary, LoadingFallback
 │   │   │   ├── pages/            # LandingPage and shell dashboard
 │   │   │   ├── plugins/          # runtimeRemoteOverride.js (MF 2.0 runtime plugin)
-│   │   │   ├── utils/            # resolveRemoteUrl.js (Dynamic runtime URL resolver)
+│   │   │   ├── utils/            # resolveRemoteUrl.js & telemetry.js (APM hooks)
 │   │   │   ├── remotesRegistry.jsx # Auto-generated zero-touch route registry
 │   │   │   ├── remotes.d.ts      # Auto-generated ambient TypeScript declarations
 │   │   │   ├── App.jsx           # Dynamic route provider & boundary orchestrator
 │   │   │   └── main.jsx          # Shell bootstrap (marks window.__IS_HOST__)
+│   │   ├── vercel.json           # Host-specific edge routing and cache headers
 │   │   └── vite.config.js        # Host Vite & Federation 2.0 configuration
 │   │
-│   ├── shared/                   # Core Library (@subrataroy100/mfe-shared)
-│   │   ├── src/
-│   │   │   ├── adapters/         # UniversalRemoteMount, createReactMount, Shadow DOM
-│   │   │   ├── events/           # Scoped Event Bus, pure core, React useMfeEventListener
-│   │   │   ├── vite/             # defineRemoteConfig preset with auto CSS injection
-│   │   │   ├── constants/        # MFE_CONFIG, service definitions, ports
-│   │   │   ├── components/       # Primitives (e.g. Button)
-│   │   │   └── index.js          # Barrel export
-│   │   └── package.json          # Dual CJS/ESM exports with tracked .d.ts types
+│   ├── marketing-mfe/            # Marketing Micro-Frontend (Port 5002)
+│   │   ├── vercel.json           # Remote-specific edge cache rules
+│   │   └── vite.config.js        # defineRemoteConfig preset
 │   │
-│   └── [remoteServices...]/      # Independent micro-frontends (e.g., marketingMfe, authMfe)
+│   └── auth-mfe/                 # Auth Micro-Frontend (Port 5003)
+│       ├── vercel.json           # Remote-specific edge cache rules
+│       └── vite.config.js        # defineRemoteConfig preset
+│
+├── packages/                     # Shared libraries, adapters, and tools
+│   └── shared/                   # Core Library (@subrataroy100/mfe-shared)
+│       ├── src/
+│       │   ├── adapters/         # UniversalRemoteMount, createReactMount, Shadow DOM
+│       │   ├── events/           # Scoped Event Bus, pure core, React hooks, event replay
+│       │   ├── vite/             # defineRemoteConfig preset with auto CSS injection
+│       │   ├── constants/        # MFE_CONFIG, service definitions, ports
+│       │   ├── components/       # Primitives (e.g. Button)
+│       │   └── index.js          # Barrel export
+│       └── package.json          # Dual CJS/ESM exports with tracked .d.ts types
 │
 ├── scripts/                      # Tooling & developer operations
 │   ├── orchestrate.js            # Workspace dev & build concurrency coordinator

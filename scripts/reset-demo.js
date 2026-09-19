@@ -34,22 +34,36 @@ if (existsSync(manifestPath)) {
   }
 }
 
+function toKebabCase(str) {
+  return str.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+function toCamelCase(str) {
+  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
 // Any service in manifest + any known default remote directory
 const servicesToRemove = new Set([
   ...Object.keys(manifest),
   ...knownDefaultRemotes,
 ]);
 
-// Find which of these actually exist in packages/
+// Find which of these actually exist in apps/ or packages/
 const existingServices = [];
-if (existsSync(packagesDir)) {
-  const dirs = readdirSync(packagesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory() && !protectedPackages.has(d.name))
-    .map((d) => d.name);
+for (const parent of ["apps", "packages"]) {
+  const pDir = resolve(rootDir, parent);
+  if (existsSync(pDir)) {
+    const dirs = readdirSync(pDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && !protectedPackages.has(d.name))
+      .map((d) => d.name);
 
-  for (const dir of dirs) {
-    if (servicesToRemove.has(dir)) {
-      existingServices.push(dir);
+    for (const dir of dirs) {
+      if (
+        servicesToRemove.has(dir) ||
+        servicesToRemove.has(toCamelCase(dir)) ||
+        servicesToRemove.has(toKebabCase(dir))
+      ) {
+        existingServices.push({ name: dir, parent, fullPath: join(pDir, dir) });
+      }
     }
   }
 }
@@ -75,16 +89,13 @@ if (!noBackup) {
   console.log("📦 Creating backup of demo setup in .demo-backup/...");
   mkdirSync(backupDir, { recursive: true });
 
-  // Backup remote packages
-  const backupPackagesDir = join(backupDir, "packages");
-  mkdirSync(backupPackagesDir, { recursive: true });
-
   for (const svc of existingServices) {
-    const srcDir = join(packagesDir, svc);
-    const destDir = join(backupPackagesDir, svc);
+    const destParent = join(backupDir, svc.parent);
+    mkdirSync(destParent, { recursive: true });
+    const destDir = join(destParent, svc.name);
     safeRmDir(destDir);
-    cpSync(srcDir, destDir, { recursive: true });
-    console.log(`   ✓ Backed up packages/${svc}`);
+    cpSync(svc.fullPath, destDir, { recursive: true });
+    console.log(`   ✓ Backed up ${svc.parent}/${svc.name}`);
   }
 
   // Backup remotes.manifest.json
@@ -101,13 +112,12 @@ if (!noBackup) {
 if (existingServices.length > 0) {
   console.log("🗑️  Removing demo micro-frontend packages...");
   for (const svc of existingServices) {
-    const dir = join(packagesDir, svc);
-    safeRmDir(dir);
-    console.log(`   ✓ packages/${svc} removed.`);
+    safeRmDir(svc.fullPath);
+    console.log(`   ✓ ${svc.parent}/${svc.name} removed.`);
   }
   console.log("");
 } else {
-  console.log("ℹ️  No demo packages found in packages/ to remove.\n");
+  console.log("ℹ️  No demo packages found in apps/ or packages/ to remove.\n");
 }
 
 // 4. Remove PlanServices.md

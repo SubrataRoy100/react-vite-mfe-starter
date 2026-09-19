@@ -197,11 +197,11 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1(@types/node@26.6.1)(@vitest/coverage-v8@5.0.1)(jsdom@30.0.1)(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
 
-  packages/authMfe:
+  apps/auth-mfe:
     dependencies:
       '@subrataroy100/mfe-shared':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/shared
       react:
         specifier: ^19.2.8
         version: 19.3.0
@@ -237,11 +237,11 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
-  packages/host:
+  apps/host:
     dependencies:
       '@subrataroy100/mfe-shared':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/shared
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0))
@@ -280,11 +280,11 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0(@types/node@26.6.1)(esbuild@0.27.7)(jiti@2.7.0)
 
-  packages/marketingMfe:
+  apps/marketing-mfe:
     dependencies:
       '@subrataroy100/mfe-shared':
         specifier: workspace:*
-        version: link:../shared
+        version: link:../../packages/shared
       react:
         specifier: ^19.2.8
         version: 19.3.0

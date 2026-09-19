@@ -23,6 +23,10 @@ const SOURCE_EXTENSIONS = new Set([
   ".cjs",
 ]);
 
+function toKebabCase(str) {
+  return str.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
 // ============================================================================
 // 1. Manifest & Package Drift Detector
 // ============================================================================
@@ -31,7 +35,6 @@ export function auditManifestDrift({
   manifest = null,
 } = {}) {
   const issues = [];
-  const packagesDir = resolve(rootDir, "packages");
   const manifestPath = resolve(rootDir, "remotes.manifest.json");
 
   let parsedManifest = manifest;
@@ -44,43 +47,64 @@ export function auditManifestDrift({
   }
   parsedManifest = parsedManifest || {};
 
-  const manifestKeys = new Set(Object.keys(parsedManifest));
-
-  // Find packages on disk
-  const existingPackages = new Set();
-  if (existsSync(packagesDir)) {
-    const entries = readdirSync(packagesDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        existingPackages.add(entry.name);
+  // Discover existing packages on disk across apps/ and packages/
+  const foundPackages = new Map(); // dirName -> { fullPath, parent }
+  for (const parent of ["apps", "packages"]) {
+    const parentDir = resolve(rootDir, parent);
+    if (existsSync(parentDir)) {
+      for (const entry of readdirSync(parentDir, { withFileTypes: true })) {
+        if (entry.isDirectory()) {
+          foundPackages.set(entry.name, {
+            fullPath: join(parentDir, entry.name),
+            parent,
+          });
+        }
       }
     }
   }
 
-  // 1a. Missing manifest entry: Folder in packages/* that is not host, shared, or in manifest
-  for (const pkgName of existingPackages) {
-    if (!PROTECTED_PACKAGES.has(pkgName) && !manifestKeys.has(pkgName)) {
-      issues.push({
-        category: "manifest_drift",
-        type: "unregistered_package",
-        name: pkgName,
-        path: join(packagesDir, pkgName),
-        description: `Package 'packages/${pkgName}' exists on disk but is not registered in remotes.manifest.json.`,
-      });
-    }
-  }
+  // Identify valid directory names associated with each remote
+  const matchedDirs = new Set();
+  for (const [remoteName, config] of Object.entries(parsedManifest)) {
+    const candidates = [
+      config.dir,
+      config.package,
+      toKebabCase(remoteName),
+      remoteName,
+    ].filter(Boolean);
 
-  // 1b. Ghost package in manifest: Key in manifest whose directory does not exist
-  for (const remoteName of manifestKeys) {
-    if (!existingPackages.has(remoteName)) {
+    let found = false;
+    for (const cand of candidates) {
+      if (foundPackages.has(cand)) {
+        matchedDirs.add(cand);
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
       issues.push({
         category: "manifest_drift",
         type: "missing_package_dir",
         name: remoteName,
         path: manifestPath,
-        description: `Remote '${remoteName}' is defined in remotes.manifest.json, but 'packages/${remoteName}' does not exist on disk.`,
+        description: `Remote '${remoteName}' is defined in remotes.manifest.json, but no corresponding directory exists under 'apps/' or 'packages/'.`,
       });
     }
+  }
+
+  // Flag folders in apps/* or packages/* that are not protected and not in manifest
+  for (const [dirName, info] of foundPackages) {
+    if (PROTECTED_PACKAGES.has(dirName) || matchedDirs.has(dirName)) {
+      continue;
+    }
+    issues.push({
+      category: "manifest_drift",
+      type: "unregistered_package",
+      name: dirName,
+      path: info.fullPath,
+      description: `Package '${info.parent}/${dirName}' exists on disk but is not registered in remotes.manifest.json.`,
+    });
   }
 
   return issues;
@@ -102,17 +126,21 @@ export function auditStaleServiceReferences({
     if (existsSync(manifestPath)) {
       try {
         const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
-        for (const k of Object.keys(manifest)) {
+        for (const [k, v] of Object.entries(manifest)) {
           currentServices.add(k);
+          if (v.dir) currentServices.add(v.dir);
+          if (v.package) currentServices.add(v.package);
         }
       } catch {
         // Ignored
       }
     }
-    const packagesDir = resolve(rootDir, "packages");
-    if (existsSync(packagesDir)) {
-      for (const d of readdirSync(packagesDir, { withFileTypes: true })) {
-        if (d.isDirectory()) currentServices.add(d.name);
+    for (const parent of ["apps", "packages"]) {
+      const parentDir = resolve(rootDir, parent);
+      if (existsSync(parentDir)) {
+        for (const d of readdirSync(parentDir, { withFileTypes: true })) {
+          if (d.isDirectory()) currentServices.add(d.name);
+        }
       }
     }
   }
@@ -286,12 +314,15 @@ export function auditLingeringEnvVars({
 // ============================================================================
 export function auditDanglingFiles({ rootDir = DEFAULT_ROOT } = {}) {
   const issues = [];
-  const packagesDir = resolve(rootDir, "packages");
-  if (!existsSync(packagesDir)) return issues;
-
-  const packageDirs = readdirSync(packagesDir, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => join(packagesDir, d.name));
+  const packageDirs = [];
+  for (const parent of ["apps", "packages"]) {
+    const parentDir = resolve(rootDir, parent);
+    if (existsSync(parentDir)) {
+      for (const d of readdirSync(parentDir, { withFileTypes: true })) {
+        if (d.isDirectory()) packageDirs.push(join(parentDir, d.name));
+      }
+    }
+  }
 
   for (const pkgDir of packageDirs) {
     const srcDir = join(pkgDir, "src");
@@ -489,12 +520,17 @@ export function auditStaleArtifacts({ rootDir = DEFAULT_ROOT } = {}) {
     resolve(rootDir, ".turbo"),
   ]);
 
-  const packagesDir = resolve(rootDir, "packages");
-  if (existsSync(packagesDir)) {
-    for (const dir of readdirSync(packagesDir, { withFileTypes: true })) {
-      if (dir.isDirectory()) {
-        targetsToCheck.add(join(packagesDir, dir.name, "dist"));
-        targetsToCheck.add(join(packagesDir, dir.name, ".turbo"));
+  for (const parent of ["apps", "packages"]) {
+    const parentDir = resolve(rootDir, parent);
+    if (existsSync(parentDir)) {
+      for (const dir of readdirSync(parentDir, { withFileTypes: true })) {
+        if (dir.isDirectory()) {
+          // Do not delete packages/shared/dist as it is an npm library required by consumers
+          if (parent !== "packages" || dir.name !== "shared") {
+            targetsToCheck.add(join(parentDir, dir.name, "dist"));
+          }
+          targetsToCheck.add(join(parentDir, dir.name, ".turbo"));
+        }
       }
     }
   }
